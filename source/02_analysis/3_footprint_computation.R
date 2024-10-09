@@ -3,8 +3,8 @@
 # File:    Computation of environmental footprints from multi-regional 
 #          input-output data
 # Authors: Charlotte Plinke & Michael Sureth
-# Paper:   Assessing the Potential of Tax Policies in Reducing Environmental 
-#          Impacts from European Food Consumption
+# Paper:   Environmental Impacts from European Food Consumption Can Be Reduced 
+#          with Carbon Pricing or a Value-Added Tax Reform
 
 # _________________________________---------------------------------------------
 # Aggregation of footprints across products ------------------------------------
@@ -39,7 +39,7 @@ n_stress <- n_stress_old + (stressors_impacts_selected %>% filter(!is.na(s_group
 # Number of stressors including/excluding newly computed ones (excl. biodiversity loss)
 n_stress_impact     <- nrow(stressors_impacts_selected)
 
-# Add grouped stressors which will be computed
+# Add grouped stressors which will be computed:
 stressors_impacts_selected <- stressors_impacts_selected %>%
   bind_rows(stressors_impacts_selected %>% group_by(s_group) %>% filter(!is.na(s_group)) %>% 
               slice(1) %>% ungroup() %>%

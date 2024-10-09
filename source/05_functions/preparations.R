@@ -2,8 +2,8 @@
 
 # File:    Settings and preparations
 # Authors: Charlotte Plinke & Michael Sureth
-# Paper:   Assessing the Potential of Tax Policies in Reducing Environmental 
-#          Impacts from European Food Consumption
+# Paper:   Environmental Impacts from European Food Consumption Can Be Reduced 
+#          with Carbon Pricing or a Value-Added Tax Reform
 
 # _____________________________________-----------------------------------------
 # _ General --------------------------------------------------------------------
@@ -47,7 +47,7 @@ invisible(lapply(functions, source))
 # EU country names and subregions by UN geoscheme
 # (https://unstats.un.org/unsd/methodology/m49/ + Cyprus to South)
 EU27 <- eu_countries %>%
-  select(geo = code, name) %>% 
+  dplyr::select(geo = code, name) %>% 
   mutate(code_iso3 = countrycode(geo,
                                  origin      = "iso2c",
                                  destination = "iso3c")) %>%

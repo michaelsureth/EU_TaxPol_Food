@@ -2,8 +2,8 @@
 
 # File:    Computation of intensities based on computed environmental footprints
 # Authors: Charlotte Plinke & Michael Sureth
-# Paper:   Assessing the Potential of Tax Policies in Reducing Environmental 
-#          Impacts from European Food Consumption
+# Paper:   Environmental Impacts from European Food Consumption Can Be Reduced 
+#          with Carbon Pricing or a Value-Added Tax Reform
 
 # _____________________________________-----------------------------------------
 # Preparations -----------------------------------------------------------------
@@ -14,7 +14,6 @@ stressors_impacts_selected <- fread("../build/data/intermediate_output/"%&%
                                       "MRIO_stressors_impacts_final.csv",
                                     data.table = FALSE) %>%
   select(-c("Landusetype", "Landusetype_coeff"))
-
 
 # _ Load EXIOBASE regions ------------------------------------------------------
 
@@ -28,8 +27,6 @@ EXIO_region_df <- read.xlsx("00_data/manual_input/Bruckner2023.xlsx",
 catexplain <- fread("../build/data/intermediate_output/"%&%
                       "HBS_catexplain_"%&%config$categorization%&%".csv",
                     data.table = FALSE)
-
-
 
 # _________________________________---------------------------------------------
 # Intensity computations -------------------------------------------------------
@@ -75,7 +72,6 @@ for(grouping in c("by_foodcat", "by_food_nonfood")){
       
       x <- x + 1
       
-      
       # __ Load and prepare data -------------------------------------------------
       
       # load demand
@@ -96,15 +92,12 @@ for(grouping in c("by_foodcat", "by_food_nonfood")){
         # summarise across all import regions
         group_by(str_imp) %>%
         dplyr::summarise(FD_hh = sum(FD_hh), value = sum(value)) %>%
-        # compute intensities
-        mutate(intensity = value/FD_hh) %>%
         # add demand country and category
         mutate(demandcountry = c, category = g)
       
       rm(Y_c_g)
     }
   }
-  
   
   # __ Compute intensities -------------------------------------------------------
   
@@ -142,7 +135,6 @@ for(grouping in c("by_foodcat", "by_food_nonfood")){
     # create header
     mutate(impact_name_unit = impact_shortname%&%" intensity \n ("%&%
              unit_intensity_final%&%")")
-  
   
   # __ Save data -----------------------------------------------------------------
   

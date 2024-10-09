@@ -2,8 +2,8 @@
 
 # File:    Welfare analysis
 # Authors: Charlotte Plinke & Michael Sureth
-# Paper:   Assessing the Potential of Tax Policies in Reducing Environmental 
-#          Impacts from European Food Consumption
+# Paper:   Environmental Impacts from European Food Consumption Can Be Reduced 
+#          with Carbon Pricing or a Value-Added Tax Reform
 
 # _____________________________________-----------------------------------------
 # Preparations -----------------------------------------------------------------
@@ -36,7 +36,6 @@ catexplain <- fread("../build/data/intermediate_output/"%&%
                       "HBS_catexplain_"%&%config$categorization%&%".csv",
                     data.table = FALSE)
 
-
 # Load selected stressors and impacts
 stressors_impacts_selected <- fread("../build/data/intermediate_output/"%&%
                                       "MRIO_stressors_impacts_final.csv",
@@ -45,6 +44,11 @@ stressors_impacts_selected <- fread("../build/data/intermediate_output/"%&%
 
 # Define policy of interest
 policy <- "tax_GHG emissions"
+
+# GHG emissions: stressor number
+str_no_GHG <- stressors_impacts_selected %>% 
+  filter(Stressor == "GHG emissions") %>%
+  pull(code_s_i)
 
 # _____________________________________-----------------------------------------
 # Log-cost-of-living index (lcol) ----------------------------------------------
@@ -239,7 +243,7 @@ intensities <- fread("../build/data/intensities/"%&%config$year_io%&%
                                 "EL",
                                 demandcountry)) %>%
   arrange(demandcountry, category, impact_no) %>%
-  filter(impact_no == 67) # impact number 67 is GHG emissions
+  filter(impact_no == str_no_GHG)
 
 # Load GHG emission price level 
 GHG_price <- fread("../build/data/policies/"%&%policy%&%"/"%&%configpath%&%
@@ -398,35 +402,19 @@ tax_inc <-
   bind_rows(.id = "country")
 
 # _ Save results ---------------------------------------------------------------
+
+# all households all countries
 fwrite(tax_inc,
        "../build/data/welfare/"%&%configpath%&%"_"%&%config$year_io%&%
          "/tax_paid_changes.csv")
 
-
-# by country
+# mean by country
 fwrite(tax_inc %>%
          group_by(policy, country) %>%
          summarize(mean_VAT_diff = weighted.mean(VAT_diff, hh_wgt),
-                   mean_GHG_inc  = weighted.mean(GHG_inc, hh_wgt),
-                   # median_VAT_diff = median(VAT_diff),
-                   # median_GHG_inc = median(GHG_inc),
-                   # nhh           = sum(hh_wgt),
-                   sum_VAT_diff  = sum(VAT_diff * hh_wgt),
-                   sum_GHG_inc   = sum(GHG_inc * hh_wgt)),
+                   mean_GHG_inc  = weighted.mean(GHG_inc, hh_wgt)),
        "../build/data/welfare/"%&%configpath%&%"_"%&%config$year_io%&%
          "/tax_paid_changes_bycountry.csv")
-
-# EU total
-fwrite(tax_inc %>%
-         summarize(mean_VAT_diff = weighted.mean(VAT_diff, hh_wgt),
-                   mean_GHG_inc  = weighted.mean(GHG_inc, hh_wgt),
-                   # median_VAT_diff = median(VAT_diff),
-                   # median_GHG_inc = median(GHG_inc),
-                   # nhh           = sum(hh_wgt),
-                   sum_VAT_diff  = sum(VAT_diff * hh_wgt),
-                   sum_GHG_inc   = sum(GHG_inc * hh_wgt)),
-       "../build/data/welfare/"%&%configpath%&%"_"%&%config$year_io%&%
-         "/tax_paid_changes_EUtotal.csv")
 
 # _____________________________________-----------------------------------------
 # END OF FILE ------------------------------------------------------------------

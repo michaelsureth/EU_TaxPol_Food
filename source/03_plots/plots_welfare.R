@@ -2,8 +2,8 @@
 
 # File:    Plot results of welfare analysis
 # Authors: Charlotte Plinke & Michael Sureth
-# Paper:   Assessing the Potential of Tax Policies in Reducing Environmental 
-#          Impacts from European Food Consumption
+# Paper:   Environmental Impacts from European Food Consumption Can Be Reduced 
+#          with Carbon Pricing or a Value-Added Tax Reform
 
 # _____________________________________------------------------------------
 # Preparations ------------------------------------------------------------
@@ -87,7 +87,7 @@ mean_tax_inc <- tax_inc %>%
   group_by(policy, country) %>%
   summarize(mean_tax_inc = weighted.mean(tax_inc, hh_wgt)) %>% ungroup() %>%
   # EU-wide weighted (by number of households per country) mean value
-  left_join(EU_hh_year %>% select(geo, weight),
+  left_join(EU_hh_year %>% dplyr::select(geo, weight),
             by = c("country" = "geo")) %>% 
   group_by(policy) %>%
   summarize(mean_tax_inc = sum(mean_tax_inc*weight)) 
@@ -99,7 +99,7 @@ mean_col <- lapply(c("VAT_increase", policy), function(pol){
   fread("../build/data/welfare/"%&%configpath%&%
           "/"%&%pol%&%"/"%&%"country-means_lcol.csv") %>%
     # EU-wide weighted (by number of households per country) mean value
-    left_join(EU_hh_year %>% select(geo, weight),
+    left_join(EU_hh_year %>% dplyr::select(geo, weight),
               by = c("country" = "geo")) %>%
     summarize(policy   = pol,
               mean_col = sum(mean_lcol_abs*weight))
@@ -126,11 +126,14 @@ EU_plots <- lapply(c("VAT_increase", policy), function(pol){
                     line_color,
                     fill_color
                     ) +
-    theme(legend.position = "none") +
+    xlab("Cost-of-living (EUR)")+ylab("")+
+    theme(legend.position = "none",
+          axis.text = element_text(size = 11),
+          axis.title = element_text(size = 12)) +
     {if(pol == "VAT_increase")
-      theme(axis.text.x = element_blank())
-    } +
-    theme(axis.text = element_text(size = 11))
+      theme(axis.text.x = element_blank(),
+            axis.title.x = element_blank())
+    } 
 })
 
 
@@ -213,7 +216,7 @@ ggsave("../build/figures/"%&%configpath%&%"/figure_lcol_EU.pdf",
 
 # _ text ------------------------------------------------------------------
 
-# Mean net costs
+# Mean change in COL, tax inc and net costs
 mean_col %>% left_join(mean_tax_inc, by="policy") %>%
   mutate(mean_col-mean_tax_inc)
 

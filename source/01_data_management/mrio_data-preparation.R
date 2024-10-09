@@ -3,8 +3,8 @@
 # File:    Preparation of multi-regional input-output data for environmental 
 #          footprint computation
 # Authors: Charlotte Plinke & Michael Sureth
-# Paper:   Assessing the Potential of Tax Policies in Reducing Environmental 
-#          Impacts from European Food Consumption
+# Paper:   Environmental Impacts from European Food Consumption Can Be Reduced 
+#          with Carbon Pricing or a Value-Added Tax Reform
 
 # _____________________________________-----------------------------------------
 # Preparations -----------------------------------------------------------------

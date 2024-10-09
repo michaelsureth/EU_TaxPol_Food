@@ -3,8 +3,8 @@
 # File:    Policy analysis: Compute GHG emission price level with equivalent 
 #          GHG emission footprint reductions as VAT policy
 # Authors: Charlotte Plinke & Michael Sureth
-# Paper:   Assessing the Potential of Tax Policies in Reducing Environmental 
-#          Impacts from European Food Consumption
+# Paper:   Environmental Impacts from European Food Consumption Can Be Reduced 
+#          with Carbon Pricing or a Value-Added Tax Reform
 
 # _____________________________________-----------------------------------------
 # Preparations -----------------------------------------------------------------
@@ -82,7 +82,6 @@ footprints <- future_lapply(countries, function(c){
   setNames(countries)
 
 names(footprints)[names(footprints) == "GR"] <- "EL"
-
 
 
 # _____________________________________-----------------------------------------

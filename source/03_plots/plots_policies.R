@@ -2,8 +2,8 @@
 
 # File:    Plot policy simulation results
 # Authors: Charlotte Plinke & Michael Sureth
-# Paper:   Assessing the Potential of Tax Policies in Reducing Environmental 
-#          Impacts from European Food Consumption
+# Paper:   Environmental Impacts from European Food Consumption Can Be Reduced 
+#          with Carbon Pricing or a Value-Added Tax Reform
 
 # _____________________________________------------------------------------
 # Preparations ------------------------------------------------------------
@@ -251,15 +251,15 @@ df_plot_pq %>%
 df_plot_pq %>%
   filter(variable == "price_increase_rel" & grepl("VAT", policy)) %>%
   group_by(category, policy) %>%
-  summarize(meandpriceincrease = mean(relative_change)) %>%
-  arrange(policy, -meandpriceincrease)
+  summarize(meanpriceincrease = mean(relative_change)) %>%
+  arrange(policy, -meanpriceincrease)
 
 # GHG price: average price change by category
 df_plot_pq %>%
   filter(variable == "price_increase_rel" & grepl("GHG", policy)) %>%
   group_by(category, policy) %>%
-  summarize(meandpriceincrease = mean(relative_change)) %>%
-  arrange(policy, -meandpriceincrease)
+  summarize(meanpriceincrease = mean(relative_change)) %>%
+  arrange(policy, -meanpriceincrease)
 
 # VAT: price change by category by country
 df_plot_pq %>%
@@ -503,7 +503,8 @@ absfootprints <- do.call(rbind.data.frame, df_c_i) %>%
 
 deltaabsfootprints %>% 
   left_join(absfootprints, by = c("header" = "shortname")) %>%
-  mutate(relreduction = footprint_reduction_abs/target.value)
+  mutate(relreduction = footprint_reduction_abs/target.value) %>% 
+  arrange(policy, relreduction)
 
 # absolute difference between policies
 deltaabsfootprints %>%

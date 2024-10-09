@@ -3,8 +3,8 @@
 # File:    Preparation and processing of data (HBS, EVS, Austrian 
 #          Konsumerhebung - K14)  for EASI demand system estimation
 # Authors: Charlotte Plinke & Michael Sureth
-# Paper:   Assessing the Potential of Tax Policies in Reducing Environmental 
-#          Impacts from European Food Consumption
+# Paper:   Environmental Impacts from European Food Consumption Can Be Reduced 
+#          with Carbon Pricing or a Value-Added Tax Reform
 
 # _____________________________________-----------------------------------------
 # Preparations -----------------------------------------------------------------
@@ -632,7 +632,7 @@ x <- c("dens_cat", "hh_children", "hh_sizeoecdm", "hh_inctot", "hh_agehead",
 
 # Set number of observations at least needed to run regression (i.e., if less than
 # n_min households in country c consumed food item i, no unit value adjustment can
-# be conducted -> then uv is imputed vor uv_adj)
+# be conducted -> then uv is imputed for uv_adj)
 n_min <- 30
 
 list_prices_data <- 

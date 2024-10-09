@@ -2,8 +2,8 @@
 
 # File:    Install and load packages required for all R files of this project 
 # Authors: Charlotte Plinke & Michael Sureth
-# Paper:   Assessing the Potential of Tax Policies in Reducing Environmental 
-#          Impacts from European Food Consumption
+# Paper:   Environmental Impacts from European Food Consumption Can Be Reduced 
+#          with Carbon Pricing or a Value-Added Tax Reform
 
 # Install packages --------------------------------------------------------
 install_packages <- function(pkg){

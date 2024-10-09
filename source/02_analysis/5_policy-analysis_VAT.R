@@ -2,8 +2,8 @@
 
 # File:    Policy analysis: Removal of VAT reduction on meat products
 # Authors: Charlotte Plinke & Michael Sureth
-# Paper:   Assessing the Potential of Tax Policies in Reducing Environmental 
-#          Impacts from European Food Consumption
+# Paper:   Environmental Impacts from European Food Consumption Can Be Reduced 
+#          with Carbon Pricing or a Value-Added Tax Reform
 
 # _____________________________________-----------------------------------------
 # Preparations -----------------------------------------------------------------
@@ -70,7 +70,6 @@ if(!identical(intersect(meat, catexplain$category_name_new), meat)){
   stop("Meat categories are not named correctly!")
 }
 
-
 # _____________________________________-----------------------------------------
 # Policy analysis: VAT increase on meat products -------------------------------
 
@@ -92,7 +91,6 @@ data_list <-
                                        country   = c, 
                                        averaging = "mean") 
 
-  
   # _ Compute footprint changes due to VAT increase ----------------------------
   
   df_return <- compute_VAT_fp_reductions(cpe_uncomp,

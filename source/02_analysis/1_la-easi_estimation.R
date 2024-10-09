@@ -2,8 +2,8 @@
 
 # File:    Estimation of LA-EASI
 # Authors: Charlotte Plinke & Michael Sureth
-# Paper:   Assessing the Potential of Tax Policies in Reducing Environmental 
-#          Impacts from European Food Consumption
+# Paper:   Environmental Impacts from European Food Consumption Can Be Reduced 
+#          with Carbon Pricing or a Value-Added Tax Reform
 
 # _____________________________________------------------------------------
 # Preparations ------------------------------------------------------------
@@ -30,7 +30,6 @@ configpath <- config$p_to_norm%&%"_"%&%
   config$shares%&%"_"%&%
   config$dse%&%"_"%&%
   config$pzint
-
 
 # _____________________________________------------------------------------
 # Prepare data ------------------------------------------------------------
@@ -229,7 +228,6 @@ future_lapply(countries, function(c){
               elaspath%&%i%&%"_"%&%c%&%"_"%&%source%&%".csv")
   }
 }) # close country loop
-
 
 # _____________________________________------------------------------------
 # END OF FILE -------------------------------------------------------------

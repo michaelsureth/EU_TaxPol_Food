@@ -2,8 +2,8 @@
 
 # File:    Functions and themes for plotting
 # Authors: Charlotte Plinke & Michael Sureth
-# Paper:   Assessing the Potential of Tax Policies in Reducing Environmental 
-#          Impacts from European Food Consumption
+# Paper:   Environmental Impacts from European Food Consumption Can Be Reduced 
+#          with Carbon Pricing or a Value-Added Tax Reform
 
 # Colour vectors ----------------------------------------------------------
 
@@ -108,6 +108,8 @@ theme_c1m3 <- function(){
                                        hjust = 0.5)
   )
 }
+
+
 
 
 # DSE - Plot functions ----------------------------------------------------
@@ -441,6 +443,7 @@ simplebar_footprint_inout <- function(demandcountries,
   
   return(barplot)
 }
+
 
 
 
@@ -978,14 +981,15 @@ plot_policies_compare <- function(countries,
                     width = 0.2,
                     na.rm = TRUE) +
       theme_c1m3() +
-      xlab("") + ylab("") +
+      xlab("") + ylab("GHG emission price (EUR/tCO2eq)") +
       scale_colour_manual(values = c("#457b9d", "#1d3557", "#dee2e6"))+
       theme(panel.grid.minor.y = element_line(linewidth = 0.1, color = "black" ),
             legend.position    = "none",
             strip.background   = element_blank(),
             strip.text         = element_text(size = 15),
             plot.caption       = element_text(face = "italic"),
-            axis.text.x        = element_markdown(angle = 90, hjust = 1, vjust = 0.5)) +
+            axis.text.x        = element_markdown(angle = 90, hjust = 1, vjust = 0.5),
+            axis.title         = element_text(size = 15)) +
       labs(caption = paste0("* Main: ", strsplit(configpath, split = "_") %>%
                               unlist() %>%
                               paste(., collapse = ", ")))
@@ -1059,6 +1063,177 @@ plot_welfare_dens <- function(df,
                                             linewidth = 0.5),
           panel.grid.major.y = element_blank(),
           plot.margin        = margin(0, 0, 0, 0))
+}
+
+
+
+# Monetization - Plot functions -------------------------------------------
+
+
+waterfall_plot_simple <- function(type, language = "english"){
+  
+  #' @name waterfall_plot_simple
+  #' @title Create simplified waterfall plot for monetized benefits
+  #' @param type can be one of "total", "percapita" or "perhousehold"
+  #' @param language can be one of "german" or "english"
+
+  # Load EU number of households 
+  EU_nhh <- EU_hh_year %>% summarize(nhh = sum(nhh)) %>% pull()
+  
+  # Load EU average household size
+  EU_hhsizeav <- read_excel("00_data/lfst_hhantych_page_spreadsheet.xlsx",
+                            sheet = "Sheet 1",
+                            skip  = 10) %>%
+    dplyr::transmute(name = ifelse(TIME == "Germany (until 1990 former territory of the FRG)",
+                                   "Germany", TIME),
+                     hh_size_av = as.numeric(!!sym(config$year_io))) %>% 
+    right_join(EU27[,c("geo", "name")], by="name") %>%
+    left_join(EU_hh_year[,c("geo", "weight")], by="geo") %>%
+    dplyr::summarise(hh_size_av = weighted.mean(hh_size_av, weight)) %>% pull()
+  
+  # Load EU total population
+  EU_npop <- EU_nhh*EU_hhsizeav 
+  
+  
+  # Create dataframe to plot (depending on type)
+  df <- final %>% 
+    {
+      if(type=="percapita"){
+        mutate(., value_EUR_pc = value_BEUR*1e9/EU_npop) 
+      } else if(type=="perhousehold"){
+        mutate(., value_EUR_ph = value_BEUR*1e9/EU_nhh)
+      } else{
+        .
+      }
+    } %>%
+    arrange(match(plotgroup, c("GHG emissions", "Phosphorus", "Nitrogen", 
+                               "Tax income", "Consumer surplus"))) %>%
+
+    # summarize by plotgroup (less detailed than waterfall_plot)
+    group_by(policy, plotgroup) %>%
+    {
+      if(type == "total") {
+        summarize(.,value= sum(value_BEUR)) 
+      } else if (type == "percapita") {
+        summarize(., value = sum(value_EUR_pc))
+      } else if (type == "perhousehold") {
+        summarize(., value = sum(value_EUR_ph))
+      } else {
+        .
+      }
+    } %>%
+    # compute net change by policy
+    group_by(policy) %>%
+    {
+      if(type == "total") {
+        mutate(., net_change = sum(value))
+      } else if (type == "percapita") {
+        mutate(., net_change = sum(value))
+      } else if (type == "perhousehold") {
+        mutate(., net_change = sum(value))
+      } else {
+        .
+      }
+    } %>%
+    ungroup() %>%
+    
+    # edit for improved visibility (order, names)
+    mutate(plotgroup = factor(plotgroup, 
+                              levels = c("Phosphorus",
+                                         "Nitrogen",
+                                         "GHG emissions",
+                                         "Tax income",
+                                         "Consumer surplus"))) %>%
+    mutate(policy = ifelse(policy == "VAT_increase", "VAT reform",
+                           ifelse(policy=="tax_GHG emissions", 
+                                  "GHG emission price",NA)))
+    
+  # Define label
+  net_label <- if(type=="total"){
+    "billion EUR"
+  }else if(type=="percapita" | type=="perhousehold"){
+    "EUR"
+  }else{
+    .   
+  }
+  
+  # Define y-axis label
+  y_label <- if(type=="total"){
+    "billion EUR"
+  }else if(type=="percapita"){
+    "EUR p.c."
+  }else if(type=="perhousehold"){
+    "EUR per household"
+  }else{
+    .   
+  }
+  
+  if(language=="german"){
+    
+    # Adjust df
+    df <- df %>%
+      mutate(policy = case_when(policy == "VAT reform" ~ "Anpassung der MwSt.", 
+                                policy == "GHG emission price" ~ "CO2-Preis"),
+             plotgroup = factor(case_when(plotgroup == "Consumer surplus" ~ "Konsumentenrente", 
+                                   plotgroup == "GHG emissions" ~ "THG-Emissionen",
+                                   plotgroup == "Nitrogen" ~ "Stickstoff",
+                                   plotgroup == "Phosphorus" ~ "Phosphor",
+                                   plotgroup == "Tax income" ~ "Steuereinnahmen"))) %>%
+      # edit for improved visibility (order, names)
+      mutate(plotgroup = factor(plotgroup, 
+                                levels = c("Phosphor",
+                                           "Stickstoff",
+                                           "THG-Emissionen",
+                                           "Steuereinnahmen",
+                                           "Konsumentenrente"))) 
+    
+    # Adjust y-axis label
+    y_label <- if(type=="total"){
+      "Mrd. EUR"
+    }else if(type=="percapita"){
+      "EUR/Person"
+    }else if(type=="perhousehold"){
+      "EUR/Haushalt"
+    }else{
+      .   
+    }
+    
+  }
+  
+  # Define colours
+  colours <- c("#f4a261", "#e9c46a", "#a50f15", "#495057", "#878c8f")
+
+  # Simplified plot of benefits
+  df %>% 
+    ggplot() +
+    geom_bar(aes(x = policy, 
+                 y = value,
+                 fill = plotgroup),
+             stat="identity",
+             width = 0.6) +
+    geom_point(aes(x = policy, 
+                   y=net_change),
+               shape=18,
+               size=4,
+               colour="#e0e1dd")+
+    geom_text(aes(x = policy, 
+                  y=net_change,
+                  label=paste(round(net_change,2), net_label)),
+              hjust=0.5, vjust=-1,
+              colour="#e0e1dd")+
+    geom_hline(yintercept=0,
+               linewidth=1,
+               linetype = "dashed")+
+    scale_fill_manual(values = colours) +
+    theme_c1m3() +
+    ylab(y_label) +
+    xlab("") +
+    guides(fill = guide_legend(nrow = 5))+
+    theme(panel.grid.major.x = element_blank(),
+          panel.grid.major.y = element_line(color = "#cbcbcb"),
+          axis.title  = element_text(size=14),
+          legend.position="right")
+
 }
 
 # _____________________________________------------------------------------

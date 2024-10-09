@@ -2,15 +2,15 @@
 
 # File:    Functions for policy analysis
 # Authors: Charlotte Plinke & Michael Sureth
-# Paper:   Assessing the Potential of Tax Policies in Reducing Environmental 
-#          Impacts from European Food Consumption
-
+# Paper:   Environmental Impacts from European Food Consumption Can Be Reduced 
+#          with Carbon Pricing or a Value-Added Tax Reform
 
 # Compute VAT footprint reductions ----------------------------------------
 
 compute_VAT_fp_reductions <- function(cpe_uncomp,
                                       VAT,
-                                      meat,
+                                      meat = c("Beef", "Pork", "Poultry", 
+                                               "Other meat/animal products"),
                                       catexplain,
                                       footprints,
                                       stressors_impacts_selected){
@@ -44,9 +44,9 @@ compute_VAT_fp_reductions <- function(cpe_uncomp,
   # each row of cpe_uncomp gives the percentage change in quantity demanded due 
   # to a one percent price increase of the good given in the respective column
   # -> multiply each row with price change in percent and sum over row to get 
-  #    aggregate change in quantity demanded (in %); equivalent to a matrix 
-  #    multiplication of the 10x10-matrix cpe_uncomp times the 1x10-vector
-  #    delta_p_df$delta_p
+  #   aggregate change in quantity demanded (in %); equivalent to a matrix 
+  #   multiplication of the 10x10-matrix cpe_uncomp times the 1x10-vector
+  #   delta_p_df$delta_p
   demand_reduction <- as.matrix(cpe_uncomp) %*% delta_p_df$delta_p
   
   data_list <- data.frame()

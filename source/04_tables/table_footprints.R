@@ -1,10 +1,9 @@
 # File info --------------------------------------------------------------------
 
-# File:    Generate LaTeX code for table on Environmental Footprints p.c.
+# File:    Generate LaTeX code for Table on Environmental Footprints p.c.
 # Authors: Charlotte Plinke & Michael Sureth
-# Paper:   Assessing the Potential of Tax Policies in Reducing Environmental 
-#          Impacts from European Food Consumption
-
+# Paper:   Environmental Impacts from European Food Consumption Can Be Reduced 
+#          with Carbon Pricing or a Value-Added Tax Reform
 
 # _____________________________________------------------------------------
 # Preparations ------------------------------------------------------------
@@ -14,6 +13,7 @@ if(!dir.exists("../build/tables/")){
   dir.create("../build/tables/",
              recursive = TRUE)
 }
+
 
 # Load unit conversion
 units_conversion <- read.xlsx("00_data/manual_input/unit_conversion.xlsx")
@@ -30,8 +30,6 @@ suppressMessages(
                          "Germany",
                          name)) %>%
     arrange(name))
-
-
 
 # _____________________________________------------------------------------
 # _ Load data -------------------------------------------------------------

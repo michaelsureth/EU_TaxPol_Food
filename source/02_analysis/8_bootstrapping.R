@@ -2,9 +2,8 @@
 
 # File:    Bootstrapped estimation of LA-EASI
 # Authors: Charlotte Plinke & Michael Sureth
-# Paper:   Assessing the Potential of Tax Policies in Reducing Environmental 
-#          Impacts from European Food Consumption
-
+# Paper:   Environmental Impacts from European Food Consumption Can Be Reduced 
+#          with Carbon Pricing or a Value-Added Tax Reform
 
 # _____________________________________-----------------------------------------
 # Preparations ---------------------------------------------------------------
@@ -21,7 +20,7 @@ configpath <- config$p_to_norm%&%"_"%&%
   config$dse%&%"_"%&%
   config$pzint
 
-# create bootstrapping path
+# Create bootstrapping path
 bootpath <- config$procdatapath%&%"bootstrap/"%&%configpath%&%"_"%&%
   config$year_io%&%"/"
 
@@ -39,13 +38,16 @@ n_cat <- length(catexplain$category_code_new)
 # Save all available category codes
 category_vec <- catexplain$category_code_new
 
-
 # Load selected stressors and impacts
 stressors_impacts_selected <- fread("../build/data/intermediate_output/"%&%
                                       "MRIO_stressors_impacts_final.csv",
                                     data.table = FALSE) %>%
   select(-c("Landusetype", "Landusetype_coeff"))
 
+# GHG emissions: stressor number
+str_no_GHG <- stressors_impacts_selected %>% 
+  filter(Stressor == "GHG emissions") %>%
+  pull(code_s_i)
 
 # _ Load VAT increases by country ----------------------------------------------
 
@@ -59,7 +61,6 @@ df_VAT <- read_excel("00_data/manual_input/VAT_rates.xlsx",
 meat <- c("Beef", "Pork", "Poultry", "Other meat/animal products")
 
 
-
 # _ Load household data --------------------------------------------------------
 
 c_clean <- 
@@ -69,7 +70,6 @@ c_clean <-
                  data.table = FALSE, showProgress = FALSE))
   }) %>%
   setNames(countries)
-
 
 
 # _ Set EASI parameters --------------------------------------------------------
@@ -105,7 +105,6 @@ footprints <-
   setNames(countries)
 
 
-
 # _ Load footprint intensities -------------------------------------------------
 
 intensities <- fread("../build/data/intensities/"%&%config$year_io%&%
@@ -116,6 +115,8 @@ intensities <- fread("../build/data/intensities/"%&%config$year_io%&%
                                 demandcountry)) %>%
   arrange(demandcountry, category, impact_no)
 
+
+# _ Set bootstrapping parameters -----------------------------------------------
 
 # Set number of bootstrapping runs according to config-file
 nboot_start <- as.numeric(config$nbootstart)
@@ -131,25 +132,26 @@ nboot_country <- data.frame(nboot   = rep(nboot_start:nboot_end,
 
 # if bootstrap sample estimates already exist, adjust nboot_country dataframe
 if(!is.empty(list.files(bootpath))){
-  # Check which bootstrap runs are already available and adjust nboot_country
-  # accordingly
+
+  # Check which bootstrap runs for footprint reductions are already available
+  # and adjust nboot_country accordingly
   temp_c <- list.files(bootpath)
-  
+
   tmp1 <-   lapply(temp_c, function(c){
-    list.files(bootpath%&%c, pattern = "^(fp_reduction_abs)", recursive = TRUE) %>% 
+    list.files(bootpath%&%c, pattern = "^(fp_reduction_abs)", recursive = TRUE) %>%
       sub("sample", "", .) %>%
       sub("/fp_reduction_abs.csv", "", .) %>%
       as.numeric()
   }) %>%
     setNames(temp_c %>% sub("temp_", "", .))
-  
+
   tmp2 <- lapply(names(tmp1), function(c){
     data.frame(country = rep(c, length(tmp1[[c]])),
                nboot   = as.vector(tmp1[[c]])) %>%
       arrange(nboot)
   }) %>%
     bind_rows()
-  
+
   nboot_country <- nboot_country %>%
     bind_rows() %>%
     left_join(tmp2, keep = TRUE) %>%
@@ -157,6 +159,7 @@ if(!is.empty(list.files(bootpath))){
     select(nboot = nboot.x, country = country.x) %>%
     split(., 1:nrow(.))
 }; rm(temp_c, tmp1, tmp2)
+
 
 # as some Stata instances fail to write output in parallel, repeat bootstrapping
 # function until specified number of samples have been estimated and computed
@@ -171,6 +174,10 @@ while(nrow(nboot_country[[1]]) > 0){
     message("Country "%&%c)
     message("Bootstrap sample "%&%nboot)
     
+    # If cpe_uncomp does not exist: run dse for sample nboot and country c
+    if(!file.exists(bootpath%&%"temp_"%&%c%&%"/sample"%&%
+                    nboot%&%"/cpe_uncomp.csv")){
+      
     # Split household dataset into list to sample in long-format
     df_clean <- c_clean[[c]] %>%
       split(., .$hh_id)
@@ -218,7 +225,6 @@ while(nrow(nboot_country[[1]]) > 0){
       sub("cd path_placeholder", "cd \""%&%bootpath%&%"temp_"%&%c%&%"/sample"%&%nboot%&%"/\"", .) %>%
       writeLines(bootpath%&%"temp_"%&%c%&%"/sample"%&%nboot%&%"/stata_temp.do")
     
-    
     # Copy config file to temporary location
     file.copy(from = "config.do",
               to   = bootpath%&%"temp_"%&%c%&%"/sample"%&%nboot%&%"/config.do")
@@ -233,7 +239,6 @@ while(nrow(nboot_country[[1]]) > 0){
     file.remove(bootpath%&%"temp_"%&%c%&%"/sample"%&%nboot%&%"/data_temp.csv",
                 bootpath%&%"temp_"%&%c%&%"/sample"%&%nboot%&%"/stata_temp.do",
                 bootpath%&%"temp_"%&%c%&%"/sample"%&%nboot%&%"/config.do")
-    
     
     # _ Compute elasticities ---------------------------------------------------
     
@@ -256,12 +261,6 @@ while(nrow(nboot_country[[1]]) > 0){
                bootpath%&%"temp_"%&%c%&%"/sample"%&%nboot%&%"/"%&%i%&%".csv")
       }; rm(i) # close elasticity-loop
       
-      
-      # _ Compute VAT footprint reductions ---------------------------------------
-      
-      # Retrieve VAT increase
-      VAT <- df_VAT %>% filter(country == c)
-      
       # Format elasticities vector into matrix
       cpe_uncomp <- elas_list[["cpe_uncomp"]] %>%
         select(matches("mean")) %>% t() %>% as.vector() %>%
@@ -269,9 +268,42 @@ while(nrow(nboot_country[[1]]) > 0){
                ncol = n_cat,
                byrow = TRUE)
       
+      # Remove objects
+      rm(ndem, dem_vars, df_final, elas_list)
+      
+      
+    } else {
+      
+      message("Stata instance did not write coefs.csv. No elasticities and footprints"%&%
+                " computed")
+      
+    } # close "catch-error" if-condition
+    
+    # else if cpe_uncomp exists: load for sample nboot and country c
+    } else {
+      
+      cpe_uncomp <- fread((bootpath%&%"temp_"%&%c%&%"/sample"%&%
+                             nboot%&%"/cpe_uncomp.csv"),
+                          data.table = FALSE) %>%
+        select(matches("mean")) %>% t() %>% as.vector() %>%
+        matrix(nrow = n_cat,
+               ncol = n_cat,
+               byrow = TRUE)
+      
+    }
+
+    
+    if(exists("cpe_uncomp")){
+      
+      # _ Compute VAT footprint reductions ---------------------------------------
+      
+      # Retrieve VAT increase
+      VAT <- df_VAT %>% filter(country == c)
+
       # Compute reductions by impact
       fp_reductions <- compute_VAT_fp_reductions(cpe_uncomp,
                                                  VAT,
+                                                 meat,
                                                  catexplain,
                                                  footprints = footprints[[c]],
                                                  stressors_impacts_selected) %>%
@@ -289,44 +321,41 @@ while(nrow(nboot_country[[1]]) > 0){
       message(c%&%" - Sample "%&%nboot%&%": coefficients, elasticities, and footprint"%&%
                 " reductions computed")
       
-    } else {
-      message("Stata instance did not write coefs.csv. No elasticities and footprints"%&%
-                " computed")
-    }
-    # close "catch-error" if-condition
-    
     # remove all objects generated in function
-    rm(nboot, c, ndem, dem_vars, df_final, elas_list, VAT,
-       cpe_uncomp, fp_reductions)
+    rm(nboot, c, VAT, cpe_uncomp, fp_reductions)
+    
+    }
+    
   },
   future.seed = TRUE)
+  
   
   # Check which bootstrap runs are already available and adjust nboot_country
   # accordingly
   temp_c <- list.files(bootpath)
-  
+
   tmp1 <-   lapply(temp_c, function(c){
-    list.files(bootpath%&%c, pattern = "^(fp_reduction_abs)", recursive = TRUE) %>% 
+    list.files(bootpath%&%c, pattern = "^(fp_reduction_abs)", recursive = TRUE) %>%
       sub("sample", "", .) %>%
       sub("/fp_reduction_abs.csv", "", .) %>%
       as.numeric()
   }) %>%
     setNames(temp_c %>% sub("temp_", "", .))
-  
+
   tmp2 <- lapply(names(tmp1), function(c){
     data.frame(country = rep(c, length(tmp1[[c]])),
                nboot   = as.vector(tmp1[[c]])) %>%
       arrange(nboot)
   }) %>%
     bind_rows()
-  
+
   nboot_country <- nboot_country %>%
     bind_rows() %>%
     left_join(tmp2, keep = TRUE) %>%
     filter(is.na(country.y) | is.na(nboot.y)) %>%
     select(nboot = nboot.x, country = country.x) %>%
     split(., 1:nrow(.))
-  
+
 }; rm(nboot_country) # close while-loop
 
 
@@ -404,7 +433,7 @@ GHG_price_level <- future_lapply(1:config$nbootend, function(nboot){
   
   # Load total GHG emission reduction as benchmark for GHG emission price policy
   benchmark <- fp_reductions_VAT_total %>%
-    select(impact_67) %>%
+    dplyr::select(matches(paste0("impact_",str_no_GHG))) %>%
     slice(nboot)
   
   # Find GHG emission price leading to equivalent reductions in GHG emissions as
@@ -415,8 +444,8 @@ GHG_price_level <- future_lapply(1:config$nbootend, function(nboot){
                                             cpe,
                                             price            = p_tax,
                                             footprints,
-                                            impact_taxed     = 67, # GHG emissions
-                                            impact_footprint = 67,
+                                            impact_taxed     = str_no_GHG,
+                                            impact_footprint = str_no_GHG,
                                             convert_from     = "kg",
                                             convert_to       = "Mt")[["footprint"]] %>%
       select(-group, -unit) %>%
@@ -482,7 +511,7 @@ fp_reductions_tax_total <- lapply(impacts, function(impact_no){
                                 cpe,
                                 price            = GHG_price_level[nboot, ],
                                 footprints,
-                                impact_taxed     = 67,
+                                impact_taxed     = str_no_GHG,
                                 impact_footprint = impact_no,
                                 convert_from     = unit_from,
                                 convert_to       = unit_to)[["footprint"]] %>%

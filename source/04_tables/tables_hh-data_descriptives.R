@@ -1,9 +1,9 @@
 # File info --------------------------------------------------------------------
 
-# File:    Generate Latex code for table on household data descriptive statistics
+# File:    Generate household data descriptive statistics
 # Authors: Charlotte Plinke & Michael Sureth
-# Paper:   Assessing the Potential of Tax Policies in Reducing Environmental 
-#          Impacts from European Food Consumption
+# Paper:   Environmental Impacts from European Food Consumption Can Be Reduced 
+#          with Carbon Pricing or a Value-Added Tax Reform
 
 # _____________________________________------------------------------------
 # Preparations ------------------------------------------------------------
@@ -192,6 +192,51 @@ write("\\renewcommand{\\baselinestretch}{1.5}",
         config$categorization%&%".tex",
       append = TRUE)
 
+
+
+# Table: Expenditure shares -----------------------------------------------
+
+# Add formatting
+tab_exp_table <- tab_exp %>%
+  pivot_wider(id_cols = c("Country"), 
+              names_from = category_name_new, 
+              values_from = c("share_infood")) %>% #share_infood
+  arrange(Country)
+
+# Generate and save LaTeX code
+write("\\renewcommand{\\baselinestretch}{1}",
+      file = "../build/tables/desc_expshares_ALLCOUNTRIES_"%&%
+        config$categorization%&%".tex")
+
+write(tab_exp_table %>%
+        dplyr::mutate_all(linebreak) %>%
+        kable(format     = "latex",
+              escape     = TRUE,
+              booktabs   = TRUE,
+              linesep    = "",
+              caption    = "Budget shares for different food items by country (2015)",
+              label      = "exp_shares",
+              row.names  = FALSE,
+              col.names  = NA,
+              align      = "c") %>%
+        kable_styling(font_size = 8) %>%
+        row_spec(0, bold = TRUE) %>%
+        column_spec(1,                 bold  = TRUE) %>%
+        column_spec(2,                 width = "1.2cm") %>%
+        column_spec(3:(ncol(tab_exp_table)), width = "1.4cm") %>%
+        column_spec(ncol(tab_exp_table)+1) %>%
+        footnote(#general_title ="",
+          general = c("NEC = Not elsewhere classified. Budget shares are given in percent (rows may not sum to 100 due to rounding).",
+                      "Weighted averages based on Eurostat Household Budget Survey (HBS).")) %>%
+        landscape() %>% kable_paper(),
+      file = "../build/tables/desc_expshares_ALLCOUNTRIES_"%&%
+        config$categorization%&%".tex",
+      append = TRUE)
+
+write("\\renewcommand{\\baselinestretch}{1.5}",
+      file = "../build/tables/desc_expshares_ALLCOUNTRIES_"%&%
+        config$categorization%&%".tex",
+      append = TRUE)
 
 # _____________________________________-----------------------------------------
 # END OF FILE ------------------------------------------------------------------

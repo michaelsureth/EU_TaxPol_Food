@@ -2,9 +2,8 @@
 
 # File:    Functions for demand system analysis
 # Authors: Charlotte Plinke & Michael Sureth
-# Paper:   Assessing the Potential of Tax Policies in Reducing Environmental 
-#          Impacts from European Food Consumption
-
+# Paper:   Environmental Impacts from European Food Consumption Can Be Reduced 
+#          with Carbon Pricing or a Value-Added Tax Reform
 
 # HBS data editing -------------------------------------------------------------
 
@@ -871,7 +870,7 @@ elas_weighted_mean_ref <- function(i, df_result, type){
   # generate weight
   df_i1 <- df_result %>% mutate(hhwgt_i = !!sym(colex)*hh_wgt) 
   
-  # EXPENDITURE ELASTICITIES (mean and ref)
+  # EXPENDITURE ELASTICITIES
   
   colelas_EE <- paste0("EE_", i)
   colsemielas_y <-  paste0("semielas_y_", i)
@@ -995,6 +994,7 @@ compute_elasticities <- function(df_final,
   
   #' @name compute_elasticities
   #' @title Compute elasticities
+  #' @description 
   #' @param df_final final household data set
   #' @param df_coefs estimated coefficients from SUR
   #' @param c country to compute elasticities for
@@ -1174,6 +1174,8 @@ compute_elasticities <- function(df_final,
   # - w_i be the expenditure share of good i
   # -> own-price Slutsky equation:   e_{i}^{uncompensated} = e_{i}^{compensated} - n_{i} w_i
   # -> cross-price Slutsky equation: e_{ij}^{uncompensated} = e_{ij}^{compensated} - n_{i} w_j
+  # see e.g. https://eml.berkeley.edu/~webfac/saez/e131_s04/taxes.pdf, http://willmann.com/~gerald/mikro1-01/lecnotes3.pdf 
+  # formula used below from slide 7 in http://willmann.com/~gerald/mikro1-01/lecnotes3.pdf
   
   for (i in 1:n_cat) {
     for (j in 1:n_cat){
@@ -1211,3 +1213,9 @@ compute_elasticities <- function(df_final,
               cpe_comp   = cpe_comp,
               cpe_uncomp = cpe_uncomp))
 }
+
+
+
+
+
+
