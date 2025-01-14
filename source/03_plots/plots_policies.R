@@ -110,8 +110,8 @@ EU_footprint_food <-
 # Figure 3: Price and quantity changes ------------------------------------
 
 # add jitter for VAT price change (otherwise points overlap perfectly)
-jitterjoin <- data.frame(category = seq(1,10,1), jitter = seq(-0.95,0.95,0.2))
-
+jitterjoin <- data.frame(category = seq(1,10,1),
+                         jitter   = seq(-0.95,0, length.out = 10))
 # prepare dataframe to plot
 df_plot_pq <- pol_all %>%
   dplyr::select(category, cat_no, price_increase_rel, demand_reduction_rel, fill,
