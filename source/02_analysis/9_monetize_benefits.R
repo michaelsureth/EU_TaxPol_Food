@@ -65,7 +65,7 @@ tax_inc_final <- tax_inc %>%
   # income per country
   group_by(policy, country) %>%
   dplyr::summarise(tax_VAT_diff_mean = weighted.mean(VAT_diff, hh_wgt),
-            tax_GHG_inc_mean  = weighted.mean(GHG_inc, hh_wgt)) %>%
+                   tax_GHG_inc_mean  = weighted.mean(GHG_inc, hh_wgt)) %>%
   mutate(tax_inc_mean = tax_VAT_diff_mean+tax_GHG_inc_mean)%>%
   ungroup() %>%
   # multiply mean by number of households for absolute change in tax income
@@ -77,7 +77,7 @@ tax_inc_final <- tax_inc %>%
   dplyr::summarise(value_MEUR = sum(tax_inc_abs_MEUR),
                    plotgroup = "Tax income",
                    s_group = "Tax income")
-  
+
 # _____________________________________------------------------------------
 # MONETIZED WELFARE COSTS -------------------------------------------------
 
@@ -86,8 +86,8 @@ df_welfare <- list()
 for(pol in c("VAT_increase",  policy)){
   # load lcol_abs results 
   df_welfare[[pol]] <- fread("../build/data/welfare/"%&%configpath%&%
-                             "/"%&%pol%&%"/"%&%"country-means_lcol.csv",
-                           data.table = FALSE) %>%
+                               "/"%&%pol%&%"/"%&%"country-means_lcol.csv",
+                             data.table = FALSE) %>%
     mutate(policy  = pol)
 }
 
@@ -114,75 +114,75 @@ welfare_final <- df_welfare %>%
 
 # (1) For each environmental indicator, determine the share that occurs in any 
 # given EXIOBASE region due to consumption of category i in country c
+
+footprints <- list()
+x <- 0
+
+for (c in countries){
   
-  footprints <- list()
-  x <- 0
+  if(c == "EL"){ c <- "GR" }
   
-  for (c in countries){
+  for (g in 1:nrow(catexplain)) {
     
-    if(c == "EL"){ c <- "GR" }
+    x <- x + 1
     
-    for (g in 1:nrow(catexplain)) {
-      
-      x <- x + 1
-      
-      footprints[[x]] <- fread(config$procdatapath%&%"aggr_footprints/"%&%
-                                config$year_io%&%"/by_foodcat/CBF_final_"%&%
-                                c%&%"_cat_"%&%g%&%".csv",
-                              data.table = FALSE) %>% 
-        # add country codes (call impreg)
-        left_join(EXIO_region_df, by = c("imp_reg" = "cntry")) %>% 
-        # compute share of footprints across all import regions
-        group_by(str_imp) %>%
-        dplyr::mutate(totalvalue = sum(value),
-                      share = value/totalvalue) %>% 
-        # add demand country and category
-        transmute(demandcountry = ifelse(c == "GR", "EL", c),
-                  category      = as.character(g),
-                  Unit, target.unit,
-                  str_imp, shortname, 
-                  imp_reg, iso_2, in_EU, 
-                  value, totalvalue, share) %>% 
-        ungroup()
-      
-    }
+    footprints[[x]] <- fread(config$procdatapath%&%"aggr_footprints/"%&%
+                               config$year_io%&%"/by_foodcat/CBF_final_"%&%
+                               c%&%"_cat_"%&%g%&%".csv",
+                             data.table = FALSE) %>% 
+      # add country codes (call impreg)
+      left_join(EXIO_region_df, by = c("imp_reg" = "cntry")) %>% 
+      # compute share of footprints across all import regions
+      group_by(str_imp) %>%
+      dplyr::mutate(totalvalue = sum(value),
+                    share = value/totalvalue) %>% 
+      # add demand country and category
+      transmute(demandcountry = ifelse(c == "GR", "EL", c),
+                category      = as.character(g),
+                Unit, target.unit,
+                str_imp, shortname, 
+                imp_reg, iso_2, in_EU, 
+                value, totalvalue, share) %>% 
+      ungroup()
+    
   }
-  
-  df_footprints <- footprints %>% bind_rows()
+}
+
+df_footprints <- footprints %>% bind_rows()
 
 # (2) Load reductions of consumption = reductions of footprints of category i 
 # in country c 
-  pol_c <- list()
-  x <- 0
+pol_c <- list()
+x <- 0
+
+for(pol in c("VAT_increase", policy)){
   
-  for(pol in c("VAT_increase", policy)){
-  
-    for (c in countries){
-      
-      countryname <- EU27[EU27$geo == c,]$name
-      
-      x <- x+1
-      
-      pol_c[[x]] <- fread("../build/data/policies/"%&%pol%&%"/"%&%configpath%&%
-                            "/reduction_"%&%c%&%".csv",
-                          data.table = FALSE) %>%
-        transmute(category_name           = category, 
-                  category                = as.character(cat_no), 
-                  footprint_reduction_rel = round(footprint_reduction_rel, 10),
-                  policy                  = pol, 
-                  country                 = c, 
-                  countryname             = countryname) %>%
-        distinct() %>%
-        # drop NAs (coming from Stressors with 0 footprint)
-        filter(!is.na(footprint_reduction_rel))
-      
-    }
+  for (c in countries){
+    
+    countryname <- EU27[EU27$geo == c,]$name
+    
+    x <- x+1
+    
+    pol_c[[x]] <- fread("../build/data/policies/"%&%pol%&%"/"%&%configpath%&%
+                          "/reduction_"%&%c%&%".csv",
+                        data.table = FALSE) %>%
+      transmute(category_name           = category, 
+                category                = as.character(cat_no), 
+                footprint_reduction_rel = round(footprint_reduction_rel, 10),
+                policy                  = pol, 
+                country                 = c, 
+                countryname             = countryname) %>%
+      distinct() %>%
+      # drop NAs (coming from Stressors with 0 footprint)
+      filter(!is.na(footprint_reduction_rel))
+    
   }
-  
-  df_pol <- pol_c %>% bind_rows() %>% distinct() %>% 
-    pivot_wider(names_from  = policy, 
-                values_from = footprint_reduction_rel, 
-                names_glue  = "{policy}_footprintchangepct") 
+}
+
+df_pol <- pol_c %>% bind_rows() %>% distinct() %>% 
+  pivot_wider(names_from  = policy, 
+              values_from = footprint_reduction_rel, 
+              names_glue  = "{policy}_footprintchangepct") 
 
 # (3) Determine absolute impact reductions by EXIOBASE imp_regs across all
 # categories and demandcountries  based on (1) and (2)
@@ -214,424 +214,389 @@ delta_footprints_imp_bycountry <- df_footprints %>%
 
 # (1) Load social cost of carbon
 
-  # Load dollar inflation rate of 2020 (to convert 2020 dollars to 2019 dollars)
-  # Source: https://www.macrotrends.net/countries/USA/united-states/inflation-rate-cpi
-  dollar_inflation_rate_2020 <- 1.23
-  # Load dollar-euro exchange rate of 2019 (convert 2019 dollars to 2019 euro)
-  # Source: https://www.macrotrends.net/2548/euro-dollar-exchange-rate-historical-chart
-  dollar_euro_2019 <- 1.12
+# Load dollar inflation rate of 2020 (to convert 2020 dollars to 2019 dollars)
+# Source: https://www.macrotrends.net/countries/USA/united-states/inflation-rate-cpi
+dollar_inflation_rate_2020 <- 1.23
+# Load dollar-euro exchange rate of 2019 (convert 2019 dollars to 2019 euro)
+# Source: https://www.macrotrends.net/2548/euro-dollar-exchange-rate-historical-chart
+dollar_euro_2019 <- 1.12
+
+# Load social cost of GHG (CO2, CH4, N2O) 
+# Source: https://www.epa.gov/system/files/documents/2023-12/epa_scghg_2023_report_final.pdf
+sc_ghg_epa <- readxl::read_excel("00_data/manual_input/social_cost_epa.xlsx",
+                                 sheet = "Sheet1",
+                                 range = "A3:E6") %>% 
+  pivot_longer(cols      = SCCO2:SCN2O, 
+               names_to  = "GHG",
+               values_to = "value_dollar_2020") %>%
+  mutate(value_dollar_2019 = value_dollar_2020/(1+dollar_inflation_rate_2020/100),
+         value_euro_2019   = value_dollar_2019/dollar_euro_2019) %>% 
+  transmute(discount_rate,
+            GHG = gsub("SC","",GHG),
+            value_euro_2019)
+
+sc_co2_epa <- sc_ghg_epa %>%
+  filter(discount_rate == 2 & GHG == "CO2") %>%
+  pull(value_euro_2019)
+
+sc_co2_moore <- 283
+
+# Global GHG emission reductions
+globalemissionreductions <- delta_footprints_imp %>% 
+  left_join(stressors_impacts_selected %>%
+              select(c("code_s_i","Stressor","s_group", "Unit")), 
+            by = c("str_imp"="code_s_i", "Unit")) %>% 
+  # note: Stressors are in original kg (=not in CO2eq as summarized stressors, 
+  # eg CO2, CH4, N2O, ...)
+  filter(s_group %in% c("CO2", "CH4", "N2O", "HFC", "PFC", "SF6")) %>% 
+  # summarize over all EU27 demandcountries, import regions and categories  
+  group_by(s_group, Unit) %>%
+  dplyr::summarise(delta_footprint_VAT = sum(delta_footprint_VAT),
+                   delta_footprint_GHG = sum(delta_footprint_GHG)) %>% 
+  ungroup() %>% 
+  # convert to tons 
+  dplyr::mutate(delta_footprint_VAT = ifelse(grepl("kg", Unit),
+                                             delta_footprint_VAT/1000,
+                                             delta_footprint_VAT),
+                delta_footprint_GHG = ifelse(grepl("kg", Unit),
+                                             delta_footprint_GHG/1000,
+                                             delta_footprint_GHG),
+                Unit = ifelse(Unit == "kg", "t", 
+                              ifelse(Unit == "kg CO2-eq", "tCO2eq",NA))) %>%
+  # SF6 is given in kg SF6 but needs to be valued at SC-CO2 as there is no
+  # social cost estimate available from EPA (2023)
+  # option 1: convert using GWP (used), option 2: filter for str_imp in CO2eq
+  left_join(stressors_impacts_selected %>% 
+              select(s_group, characterization_factor) %>% 
+              unique()  %>%
+              group_by(s_group) %>%
+              slice_max(characterization_factor, na_rm = TRUE) %>%
+              ungroup(), by = "s_group") %>%
+  mutate(delta_footprint_VAT = ifelse(s_group == "SF6",
+                                      delta_footprint_VAT * characterization_factor,
+                                      delta_footprint_VAT),
+         delta_footprint_GHG = ifelse(s_group == "SF6",
+                                      delta_footprint_GHG * characterization_factor,
+                                      delta_footprint_GHG)) %>%
+  select(-characterization_factor) %>%
+  # Add social cost estimates to emission reductions data
+  left_join(sc_ghg_epa %>%
+              filter(discount_rate==2) %>%
+              select(-discount_rate) %>%
+              rename(epa_eur_2019 = value_euro_2019),
+            by = c("s_group" = "GHG"))  %>%
+  mutate(epa_eur_2019 = ifelse(is.na(epa_eur_2019),
+                               sc_co2_epa,
+                               epa_eur_2019),
+         moore_eur_2019 = sc_co2_moore/(1+dollar_inflation_rate_2020/100)/dollar_euro_2019,
+         # As Moore et al. (2024) only provide a central social cost estimate for CO2,
+         # the social costs are scaled using the ratio between CH4 and N2O to CO2 from
+         # EPA (2023) 
+         moore_eur_2019 = ifelse(epa_eur_2019 != sc_co2_epa,
+                                 moore_eur_2019 * epa_eur_2019/sc_co2_epa,
+                                 moore_eur_2019))
+
+GHG_final <- globalemissionreductions %>%
+  # Compute total reduction benefits in MEUR and generate output table
+  # CO2, CH4 and N2O are valued at their respective SC
+  # HFC, PFC, SF6 are now given in CO2eq and will be valued at SC-CO2
+  # for both policy scenarios, the additional monetary benefit if the SC-CO2 is
+  # as high as Moore et al. (2024) claim is computed
+  transmute(s_group,
+            VAT_increase        = delta_footprint_VAT * epa_eur_2019 / 1e6,
+            VAT_diff_moore      = delta_footprint_VAT * moore_eur_2019 / 1e6 - VAT_increase,
+            `tax_GHG emissions` = delta_footprint_GHG * epa_eur_2019 / 1e6,
+            GHG_diff_moore      = delta_footprint_GHG * moore_eur_2019 / 1e6 - `tax_GHG emissions`) %>%
+  {
+    df <- select(., c("s_group", "VAT_increase", "tax_GHG emissions")) %>%
+      mutate(scc = "epa")
+    
+    bind_rows(df, select(., c("s_group", "VAT_diff_moore", "GHG_diff_moore")) %>%
+                rename(VAT_increase = VAT_diff_moore,
+                       `tax_GHG emissions`= GHG_diff_moore) %>%
+                mutate(scc = "diff_moore"))
+  } %>%
+  pivot_longer(-c("s_group", "scc"),
+               names_to  = "policy",
+               values_to = "value_MEUR") %>%
+  left_join(selectedindicators_df %>% select(shortname, plotgroup),
+            by = c("s_group"="shortname"))
+
+
+# ---- Global emission reduction by country ---
+globalemissionreductions_bycountry <- delta_footprints_imp_bycountry %>% 
+  left_join(stressors_impacts_selected[,c("code_s_i","Stressor","s_group", "Unit")], 
+            by = c("str_imp"="code_s_i", "Unit")) %>% 
+  # note: Stressors are in original kg (=not in CO2eq as summarized stressors, 
+  # eg CO2, CH4, N2O, ...)
+  filter(s_group %in% c("CO2", "CH4", "N2O", "HFC", "PFC", "SF6")) %>% 
+  # summarize over all EU27 demandcountries, import regions and categories  
+  group_by(s_group, Unit, demandcountry) %>% 
+  dplyr::summarise(delta_footprint_VAT = sum(delta_footprint_VAT),
+                   delta_footprint_GHG = sum(delta_footprint_GHG)) %>% 
+  ungroup() %>% 
+  # convert to tons 
+  dplyr::mutate(delta_footprint_VAT = ifelse(grepl("kg", Unit),
+                                             delta_footprint_VAT/1000,
+                                             delta_footprint_VAT),
+                delta_footprint_GHG = ifelse(grepl("kg", Unit),
+                                             delta_footprint_GHG/1000,
+                                             delta_footprint_GHG),
+                Unit = ifelse(Unit == "kg", "t", 
+                              ifelse(Unit == "kg CO2-eq", "tCO2eq",NA))) %>%
   
-  # Load social cost of GHG (CO2, CH4, N2O) 
-  # Source: https://www.epa.gov/system/files/documents/2023-12/epa_scghg_2023_report_final.pdf
-  sc_ghg <- readxl::read_excel("00_data/manual_input/social_cost_epa.xlsx",
-                               sheet = "Sheet1",
-                               range = "A3:E6") %>% 
-    pivot_longer(cols      = SCCO2:SCN2O, 
-                 names_to  = "GHG",
-                 values_to = "value_dollar_2020") %>%
-    mutate(value_dollar_2019 = value_dollar_2020/(1+dollar_inflation_rate_2020/100),
-           value_euro_2019   = value_dollar_2019/dollar_euro_2019) %>% 
-    transmute(discount_rate,
-              GHG = gsub("SC","",GHG),
-              value_euro_2019)
-    
-  # Global GHG emission reductions
-  globalemissionreductions <- delta_footprints_imp %>% 
-    left_join(stressors_impacts_selected[,c("code_s_i","Stressor","s_group", "Unit")], 
-              by = c("str_imp"="code_s_i", "Unit")) %>% 
-    # note: Stressors are in original kg (=not in CO2eq as summarized stressors, 
-    # eg CO2, CH4, N2O, ...)
-    filter(s_group %in% c("CO2", "CH4", "N2O", "HFC", "PFC", "SF6")) %>% 
-    # summarize over all EU27 demandcountries, import regions and categories  
-    group_by(s_group, Unit) %>%
-    dplyr::summarise(delta_footprint_VAT = sum(delta_footprint_VAT),
-                     delta_footprint_GHG = sum(delta_footprint_GHG)) %>% 
-    ungroup() %>% 
-    # convert to tons 
-    dplyr::mutate(delta_footprint_VAT = ifelse(grepl("kg", Unit),
-                                               delta_footprint_VAT/1000,
-                                               delta_footprint_VAT),
-                  delta_footprint_GHG = ifelse(grepl("kg", Unit),
-                                               delta_footprint_GHG/1000,
-                                               delta_footprint_GHG),
-                  Unit = ifelse(Unit == "kg", "t", 
-                         ifelse(Unit == "kg CO2-eq", "tCO2eq",NA))) %>% 
-    
+  
   # Add social cost estimates to reductions 
-    left_join(  sc_ghg[sc_ghg$discount_rate==2,], 
-                by = c("s_group" = "GHG"))  %>%
+  left_join(  sc_ghg[sc_ghg$discount_rate==2,], 
+              by = c("s_group" = "GHG"))  %>%
   
   # SF6 is given in kg SF6 but needs to be valued at SC-CO2
   # option 1: convert using GWP (used), option 2: filter for str_imp in CO2eq
-      mutate(delta_footprint_VAT = ifelse(s_group != "SF6", 
-                                        delta_footprint_VAT,
-                                        delta_footprint_VAT*
-                                          stressors_impacts_selected[stressors_impacts_selected$s_group == "SF6" & 
-                                          !is.na(stressors_impacts_selected$s_group),]$characterization_factor
-                                        ),
-           delta_footprint_GHG = ifelse(s_group != "SF6", 
-                                        delta_footprint_GHG,
-                                        delta_footprint_GHG*
-                                          stressors_impacts_selected[stressors_impacts_selected$s_group == "SF6" & 
-                                          !is.na(stressors_impacts_selected$s_group),]$characterization_factor
-                                        ),
-           Unit = ifelse(s_group != "SF6", 
-                         Unit,
-                         paste0(Unit, "CO2eq")))
-           
-    # CO2, CH4 and N2O are valued at their respective SC
-    # HFC, PFC, SF6 are now given in CO2eq and will be valued at SC-CO2
-    globalemissionreductions[globalemissionreductions$Unit == "tCO2eq",]$value_euro_2019 <- 
-      sc_ghg[sc_ghg$GHG == "CO2" & sc_ghg$discount_rate==2,]$value_euro_2019
-    
-    # Compute total reduction benefits in MEUR and generate output table
-    GHG_final <- globalemissionreductions %>%
-      transmute(s_group,
-                VAT_increase        = delta_footprint_VAT*value_euro_2019/1e6,
-                `tax_GHG emissions` = delta_footprint_GHG*value_euro_2019/1e6) %>%
-      pivot_longer(-s_group,
-                   names_to  = "policy",
-                   values_to = "value_MEUR") %>%
-    # add s_group %>%
-      left_join(selectedindicators_df[,c("shortname", "plotgroup")], 
-                by = c("s_group"="shortname")) 
-    
-    
-    # ---- Global emission reduction by country ---
-    globalemissionreductions_bycountry <- delta_footprints_imp_bycountry %>% 
-      left_join(stressors_impacts_selected[,c("code_s_i","Stressor","s_group", "Unit")], 
-                by = c("str_imp"="code_s_i", "Unit")) %>% 
-      # note: Stressors are in original kg (=not in CO2eq as summarized stressors, 
-      # eg CO2, CH4, N2O, ...)
-      filter(s_group %in% c("CO2", "CH4", "N2O", "HFC", "PFC", "SF6")) %>% 
-      # summarize over all EU27 demandcountries, import regions and categories  
-      group_by(s_group, Unit, demandcountry) %>% 
-      dplyr::summarise(delta_footprint_VAT = sum(delta_footprint_VAT),
-                       delta_footprint_GHG = sum(delta_footprint_GHG)) %>% 
-      ungroup() %>% 
-      # convert to tons 
-      dplyr::mutate(delta_footprint_VAT = ifelse(grepl("kg", Unit),
-                                                 delta_footprint_VAT/1000,
-                                                 delta_footprint_VAT),
-                    delta_footprint_GHG = ifelse(grepl("kg", Unit),
-                                                 delta_footprint_GHG/1000,
-                                                 delta_footprint_GHG),
-                    Unit = ifelse(Unit == "kg", "t", 
-                                  ifelse(Unit == "kg CO2-eq", "tCO2eq",NA))) %>%
-      
-      
-      # Add social cost estimates to reductions 
-      left_join(  sc_ghg[sc_ghg$discount_rate==2,], 
-                  by = c("s_group" = "GHG"))  %>%
-      
-      # SF6 is given in kg SF6 but needs to be valued at SC-CO2
-      # option 1: convert using GWP (used), option 2: filter for str_imp in CO2eq
-      mutate(delta_footprint_VAT = ifelse(s_group != "SF6", 
-                                          delta_footprint_VAT,
-                                          delta_footprint_VAT*
-                                            stressors_impacts_selected[stressors_impacts_selected$s_group == "SF6" & 
-                                                                         !is.na(stressors_impacts_selected$s_group),]$characterization_factor
-      ),
-      delta_footprint_GHG = ifelse(s_group != "SF6", 
-                                   delta_footprint_GHG,
-                                   delta_footprint_GHG*
-                                     stressors_impacts_selected[stressors_impacts_selected$s_group == "SF6" & 
-                                                                  !is.na(stressors_impacts_selected$s_group),]$characterization_factor
-      ),
-      Unit = ifelse(s_group != "SF6", 
-                    Unit,
-                    paste0(Unit, "CO2eq")))
-    
-    # CO2, CH4 and N2O are valued at their respective SC
-    # HFC, PFC, SF6 are now given in CO2eq and will be valued at SC-CO2
-    globalemissionreductions_bycountry[globalemissionreductions_bycountry$Unit == "tCO2eq",]$value_euro_2019 <- 
-      sc_ghg[sc_ghg$GHG == "CO2" & sc_ghg$discount_rate==2,]$value_euro_2019
-    
-    # Compute total reduction benefits in MEUR and generate output table
-    GHG_final_bycountry <- globalemissionreductions_bycountry %>%
-      transmute(s_group,
-                demandcountry,
-                VAT_increase        = delta_footprint_VAT*value_euro_2019/1e6,
-                `tax_GHG emissions` = delta_footprint_GHG*value_euro_2019/1e6) %>%
-      pivot_longer(-c(s_group,demandcountry),
-                   names_to  = "policy",
-                   values_to = "value_MEUR") %>%
-      # add s_group %>%
-      left_join(selectedindicators_df[,c("shortname", "plotgroup")], 
-                by = c("s_group"="shortname")) 
-    
+  mutate(delta_footprint_VAT = ifelse(s_group != "SF6", 
+                                      delta_footprint_VAT,
+                                      delta_footprint_VAT*
+                                        stressors_impacts_selected[stressors_impacts_selected$s_group == "SF6" & 
+                                                                     !is.na(stressors_impacts_selected$s_group),]$characterization_factor
+  ),
+  delta_footprint_GHG = ifelse(s_group != "SF6", 
+                               delta_footprint_GHG,
+                               delta_footprint_GHG*
+                                 stressors_impacts_selected[stressors_impacts_selected$s_group == "SF6" & 
+                                                              !is.na(stressors_impacts_selected$s_group),]$characterization_factor
+  ),
+  Unit = ifelse(s_group != "SF6", 
+                Unit,
+                paste0(Unit, "CO2eq")))
+
+# CO2, CH4 and N2O are valued at their respective SC
+# HFC, PFC, SF6 are now given in CO2eq and will be valued at SC-CO2
+globalemissionreductions_bycountry[globalemissionreductions_bycountry$Unit == "tCO2eq",]$value_euro_2019 <- 
+  sc_ghg[sc_ghg$GHG == "CO2" & sc_ghg$discount_rate==2,]$value_euro_2019
+
+# Compute total reduction benefits in MEUR and generate output table
+GHG_final_bycountry <- globalemissionreductions_bycountry %>%
+  transmute(s_group,
+            demandcountry,
+            VAT_increase        = delta_footprint_VAT*value_euro_2019/1e6,
+            `tax_GHG emissions` = delta_footprint_GHG*value_euro_2019/1e6) %>%
+  pivot_longer(-c(s_group,demandcountry),
+               names_to  = "policy",
+               values_to = "value_MEUR") %>%
+  # add s_group %>%
+  left_join(selectedindicators_df[,c("shortname", "plotgroup")], 
+            by = c("s_group"="shortname")) 
+
 
 # _ Social cost of nitrogen ------------------------------------------
 # Source: van Grinsven et al 2018
 # We only determine the value of benefits accruing within the EU (excl. Croatia) 
 # since no robust social cost of nitrogen estimates are available globally.
 # Note: We use these values as given (no inflation adjustment).
+
+# Load SCN for EU countries (by N compound)
+scn <- read_excel("00_data/manual_input/vanGrinsven_2018.xlsx",
+                  sheet = "Sheet1",
+                  range = "A3:K30") %>% 
+  filter(!is.na(Emission)) %>%
+  mutate(Emission = ifelse(Emission == "Czech. Rep", "Czechia", Emission)) %>%
+  left_join(EU27, by = c("Emission" = "name")) %>%
+  dplyr::select(country = Emission,geo,
+                NOx,
+                NH3     = NHx,
+                N       = Nleach) %>%
+  pivot_longer(cols      = NOx:N,
+               names_to  = "Stressor",
+               values_to = "SCN_EUR_kg")
+
+# Nitrogen stressors
+stressors_nitrogen <- stressors_impacts_selected %>% 
+  filter(s_group %in% c("NOx", "NH3", "N")) %>% 
+  dplyr::select(Stressor) %>% pull()
+
+# Compute social cost of nitrogen (N, NH3, NOx) footprints for country c and category i
+
+# (1) Load footprints  
+fp_scn <- list()
+x <- 0
+
+for(c in countries){
   
-  # Load SCN for EU countries (by N compound)
-  scn <- read_excel("00_data/manual_input/vanGrinsven_2018.xlsx",
-                    sheet = "Sheet1",
-                    range = "A3:K30") %>% 
-    filter(!is.na(Emission)) %>%
-    mutate(Emission = ifelse(Emission == "Czech. Rep", "Czechia", Emission)) %>%
-    left_join(EU27, by = c("Emission" = "name")) %>%
-    dplyr::select(country = Emission,geo,
-                  NOx,
-                  NH3     = NHx,
-                  N       = Nleach) %>%
-    pivot_longer(cols      = NOx:N,
-                 names_to  = "Stressor",
-                 values_to = "SCN_EUR_kg")
+  if(c == "EL"){ c <- "GR"}
   
-  # Nitrogen stressors
-    stressors_nitrogen <- stressors_impacts_selected %>% 
+  for (i in catexplain$category_code_new){
+    
+    x <- x+1
+    
+    fp_scn[[x]] <- fread(config$procdatapath%&%"aggr_footprints/"%&%config$year_io%&%
+                           "/by_foodcat/CBF_final_"%&%c%&%"_cat_"%&%i%&%".csv",
+                         header = TRUE, data.table = FALSE) %>% 
       filter(s_group %in% c("NOx", "NH3", "N")) %>% 
-      dplyr::select(Stressor) %>% pull()
-  
-  # Compute social cost of nitrogen (N, NH3, NOx) footprints for country c and category i
-  
-  # (1) Load footprints  
-  fp_scn <- list()
-  x <- 0
-  
-  for(c in countries){
-  
-    if(c == "EL"){ c <- "GR"}
-    
-    for (i in catexplain$category_code_new){
       
-      x <- x+1
-      
-      fp_scn[[x]] <- fread(config$procdatapath%&%"aggr_footprints/"%&%config$year_io%&%
-                         "/by_foodcat/CBF_final_"%&%c%&%"_cat_"%&%i%&%".csv",
-                             header = TRUE, data.table = FALSE) %>% 
-        filter(s_group %in% c("NOx", "NH3", "N")) %>% 
-        
-        # we only compute costs within the EU as no SCN for other countries available
-        filter(in_EU == 1) %>%
-        # add social (unit) cost
-        left_join(scn, by = c("imp_reg" = "country", "s_group"="Stressor")) %>% 
-        # compute total social cost in category
-        mutate(SCN = value*SCN_EUR_kg) %>%
-        group_by(s_group) %>%
-        summarize(SCN = sum(SCN, na.rm=T)) %>% ungroup() %>%
-        # add country and category info
-        mutate(country = c, category = i)
+      # we only compute costs within the EU as no SCN for other countries available
+      filter(in_EU == 1) %>%
+      # add social (unit) cost
+      left_join(scn, by = c("imp_reg" = "country", "s_group"="Stressor")) %>% 
+      # compute total social cost in category
+      mutate(SCN = value*SCN_EUR_kg) %>%
+      group_by(s_group) %>%
+      summarize(SCN = sum(SCN, na.rm=T)) %>% ungroup() %>%
+      # add country and category info
+      mutate(country = c, category = i)
     
-      }# end category loop
-  }# end country loop
-  
-  # List to df
-  fp_scn <- fp_scn %>% bind_rows() 
-  
-  # (2) Load percentage reduction for country c for category i due to policy p
-  pol_c <- list()
-  x <- 0
-  
-  for(pol in c("VAT_increase", policy)){
+  }# end category loop
+}# end country loop
 
-    for (c in countries){
-      
-      countryname <- EU27[EU27$geo == c,]$name
-      
-      x <- x+1
-      
-      pol_c[[x]] <- fread("../build/data/policies/"%&%pol%&%"/"%&%configpath%&%
-                            "/reduction_"%&%c%&%".csv",
-                          data.table = FALSE) %>%
-        transmute(category, cat_no, 
-                  footprint_reduction_rel = round(footprint_reduction_rel, 6),
-                  policy = pol, 
-                  country = c, 
-                  countryname = countryname) %>% distinct()
-      
-    } # end country loop
-  }# end policy loop
+# List to df
+fp_scn <- fp_scn %>% bind_rows() 
+
+# (2) Load percentage reduction for country c for category i due to policy p
+pol_c <- list()
+x <- 0
+
+for(pol in c("VAT_increase", policy)){
   
-  pol_c <- pol_c %>% bind_rows() %>% distinct()
-  
-  # (3) Compute reduction in N, NH3, NOx due to footprint reductions
-  N_final <- fp_scn %>%
-    mutate(country = ifelse(country == "GR", "EL", country)) %>% 
-    left_join(pol_c,
-              by = c("category" = "cat_no", "country"),
-              relationship = "many-to-many") %>% 
-    mutate(social_value_of_reduction = SCN*(-footprint_reduction_rel)) %>% 
-    filter(!is.na(policy)) %>%
-    group_by(policy,s_group) %>%
-    summarize(value_MEUR = sum(social_value_of_reduction, na.rm = T)/1e6) %>%
-    mutate(plotgroup = "Nitrogen")
-  
-  
-  # (4) Compute reduction in N, NH3, NOx due to footprint reductions by country
-  N_final_bycountry <- fp_scn %>%
-    mutate(country = ifelse(country == "GR", "EL", country)) %>% 
-    left_join(pol_c,
-              by = c("category" = "cat_no", "country"),
-              relationship = "many-to-many") %>% 
-    mutate(social_value_of_reduction = SCN*(-footprint_reduction_rel)) %>% 
-    filter(!is.na(policy)) %>%
-    group_by(policy,s_group, country) %>%
-    summarize(value_MEUR = sum(social_value_of_reduction, na.rm = T)/1e6) %>%
-    mutate(plotgroup = "Nitrogen")
-  
+  for (c in countries){
+    
+    countryname <- EU27[EU27$geo == c,]$name
+    
+    x <- x+1
+    
+    pol_c[[x]] <- fread("../build/data/policies/"%&%pol%&%"/"%&%configpath%&%
+                          "/reduction_"%&%c%&%".csv",
+                        data.table = FALSE) %>%
+      transmute(category, cat_no, 
+                footprint_reduction_rel = round(footprint_reduction_rel, 6),
+                policy = pol, 
+                country = c, 
+                countryname = countryname) %>% distinct()
+    
+  } # end country loop
+}# end policy loop
+
+pol_c <- pol_c %>% bind_rows() %>% distinct()
+
+# (3) Compute reduction in N, NH3, NOx due to footprint reductions
+N_final <- fp_scn %>%
+  mutate(country = ifelse(country == "GR", "EL", country)) %>% 
+  left_join(pol_c,
+            by = c("category" = "cat_no", "country"),
+            relationship = "many-to-many") %>% 
+  mutate(social_value_of_reduction = SCN*(-footprint_reduction_rel)) %>% 
+  filter(!is.na(policy)) %>%
+  group_by(policy,s_group) %>%
+  summarize(value_MEUR = sum(social_value_of_reduction, na.rm = T)/1e6) %>%
+  mutate(plotgroup = "Nitrogen")
+
+
+# (4) Compute reduction in N, NH3, NOx due to footprint reductions by country
+N_final_bycountry <- fp_scn %>%
+  mutate(country = ifelse(country == "GR", "EL", country)) %>% 
+  left_join(pol_c,
+            by = c("category" = "cat_no", "country"),
+            relationship = "many-to-many") %>% 
+  mutate(social_value_of_reduction = SCN*(-footprint_reduction_rel)) %>% 
+  filter(!is.na(policy)) %>%
+  group_by(policy,s_group, country) %>%
+  summarize(value_MEUR = sum(social_value_of_reduction, na.rm = T)/1e6) %>%
+  mutate(plotgroup = "Nitrogen")
+
 # _ Social cost of Phosphorus --------------------------------------------
+
+# Load SCP for EU countries (in 2020 EURO)
+# Source: Tabelle 25 in https://www.umweltbundesamt.de/sites/default/files/medien/1410/publikationen/2020-12-21_methodenkonvention_3_1_kostensaetze.pdf
+scp_2020 <- 153.5
+
+# Load euro inflation rate of 2019 in EU27 (to convert 2020 euro to 2019 euro)
+# https://de.statista.com/statistik/daten/studie/156285/umfrage/entwicklung-der-inflationsrate-in-der-eu-und-der-eurozone/
+euro_inflation_rate_2020 <- 0.7
+
+# Convert SCP to euro_2019
+scp = scp_2020/(1+euro_inflation_rate_2020/100)
+
+# Compute social cost of phosphorus footprints for country c and category i
+fp_scp <- list()
+x <- 0
+
+for(c in countries){
   
-  # Load SCP for EU countries (in 2020 EURO)
-  # Source: Tabelle 25 in https://www.umweltbundesamt.de/sites/default/files/medien/1410/publikationen/2020-12-21_methodenkonvention_3_1_kostensaetze.pdf
-  scp_2020 <- 153.5
+  if(c == "EL"){ c <- "GR"}
   
-  # Load euro inflation rate of 2019 in EU27 (to convert 2020 euro to 2019 euro)
-  # https://de.statista.com/statistik/daten/studie/156285/umfrage/entwicklung-der-inflationsrate-in-der-eu-und-der-eurozone/
-  euro_inflation_rate_2020 <- 0.7
-  
-  # Convert SCP to euro_2019
-  scp = scp_2020/(1+euro_inflation_rate_2020/100)
-  
-  # Compute social cost of phosphorus footprints for country c and category i
-  fp_scp <- list()
-  x <- 0
-  
-  for(c in countries){
+  for (i in catexplain$category_code_new){
     
-    if(c == "EL"){ c <- "GR"}
+    x <- x+1
     
-    for (i in catexplain$category_code_new){
+    fp_scp[[x]] <- fread(config$procdatapath%&%"aggr_footprints/"%&%config$year_io%&%
+                           "/by_foodcat/CBF_final_"%&%c%&%"_cat_"%&%i%&%".csv",
+                         header = TRUE, data.table = FALSE) %>%
+      filter(shortname %in% c("Phosphorus")) %>%
       
-      x <- x+1
-      
-      fp_scp[[x]] <- fread(config$procdatapath%&%"aggr_footprints/"%&%config$year_io%&%
-                             "/by_foodcat/CBF_final_"%&%c%&%"_cat_"%&%i%&%".csv",
-                           header = TRUE, data.table = FALSE) %>%
-        filter(shortname %in% c("Phosphorus")) %>%
-        
-        # we only compute costs within the EU 
-        filter(in_EU == 1) %>%
-        # compute total social cost in category
-        mutate(SCP = value*scp) %>%
-        group_by(Stressor) %>%
-        summarize(SCP = sum(SCP, na.rm = T)) %>% ungroup() %>%
-        # add country and category info
-        mutate(country = c, category = i)
-      
-    }# end category loop
-  }# end country loop
-  
-  # List to df
-  fp_scp <- fp_scp %>% bind_rows() 
-  
-  # Load percentage reduction for country c for category i due to policy p
-  pol_c <- list()
-  x <- 0
-  
-  for(pol in c("VAT_increase", policy)){
+      # we only compute costs within the EU 
+      filter(in_EU == 1) %>%
+      # compute total social cost in category
+      mutate(SCP = value*scp) %>%
+      group_by(Stressor) %>%
+      summarize(SCP = sum(SCP, na.rm = T)) %>% ungroup() %>%
+      # add country and category info
+      mutate(country = c, category = i)
     
-    for (c in countries){
-      
-      countryname <- EU27[EU27$geo == c,]$name
-      
-      x <- x+1
-      
-      pol_c[[x]] <- fread("../build/data/policies/"%&%pol%&%"/"%&%configpath%&%
-                            "/reduction_"%&%c%&%".csv",
-                          data.table = FALSE) %>%
-        transmute(category, cat_no, 
-                  footprint_reduction_rel = round(footprint_reduction_rel, 6),
-                  policy                  = pol, 
-                  country                 = c, 
-                  countryname             = countryname) %>%
-        distinct()
-      
-    } # end country loop
-  }# end policy loop
-  
-  pol_c <- pol_c %>% bind_rows() %>% distinct()
-  
-  # Compute reduction in P due to footprint reductions
-  P_final <- fp_scp %>% 
-    mutate(country = ifelse(country == "GR", "EL", country)) %>%  
-    left_join(pol_c, by = c("category" = "cat_no", "country"),
-                       relationship = "many-to-many") %>%
-    mutate(social_value_of_reduction = SCP*(-footprint_reduction_rel)) %>% 
-    filter(!is.na(policy)) %>% 
-    group_by(policy) %>%
-    summarize(value_MEUR = sum(social_value_of_reduction, na.rm=T)/1000000) %>%
-    mutate(plotgroup = "Phosphorus",
-           s_group = "Phosphorus")
-  
-  
-  # Compute reduction in P due to footprint reductions by country
-  P_final_bycountry <- fp_scp %>% 
-    mutate(country = ifelse(country == "GR", "EL", country)) %>%
-    left_join(pol_c, by = c("category" = "cat_no", "country"),
-              relationship = "many-to-many") %>% 
-    mutate(social_value_of_reduction = SCP*(-footprint_reduction_rel)) %>% 
-    filter(!is.na(policy)) %>%
-    group_by(policy, country) %>%
-    summarize(value_MEUR = sum(social_value_of_reduction, na.rm=T)/1000000) %>%
-    mutate(plotgroup = "Phosphorus",
-           s_group = "Phosphorus")
-  
+  }# end category loop
+}# end country loop
 
-# _ Table: Aggregate benefits ---------------------------------------------
+# List to df
+fp_scp <- fp_scp %>% bind_rows() 
 
-  # Create directory if necessary
-  ifelse(!dir.exists(file.path("../build/tables/"%&%
-                                 substring(configpath, 1, nchar(configpath)-5)%&%
-                                 "/")
-  ), 
-  dir.create(file.path("../build/tables/"%&%
-                         substring(configpath, 1, nchar(configpath)-5)%&%"/"),
-             recursive = TRUE),
-  FALSE)
-  
-  # Save table
-  write(
-    GHG_final %>%
-      bind_rows(N_final) %>%
-      bind_rows(P_final) %>% 
-      mutate(value_MEUR = round(value_MEUR)) %>%
-      pivot_wider(names_from = policy, 
-                  values_from = value_MEUR) %>%
-      dplyr::select(Benefit = plotgroup, Stressor = s_group, 
-             `VAT reform` = VAT_increase,
-             `GHG emission price` = `tax_GHG emissions`) %>%
-      bind_rows(summarise(.,
-                          across(where(is.numeric), sum),
-                          across(where(is.character), ~"Total"))) %>%
-      kable(format     = "latex",
-            escape     = TRUE,
-            booktabs   = TRUE,
-            linesep    = "",
-            row.names  = FALSE,
-            align      = "c") %>%
-      kable_styling(font_size = 8) %>%
-      row_spec(0, bold = TRUE) %>%
-      kable_paper(),
-    file ="../build/tables/"%&%substring(configpath, 1, nchar(configpath)-5)%&%
-      "/benefits_table.tex") 
+# Load percentage reduction for country c for category i due to policy p
+pol_c <- list()
+x <- 0
 
+for(pol in c("VAT_increase", policy)){
   
+  for (c in countries){
+    
+    countryname <- EU27[EU27$geo == c,]$name
+    
+    x <- x+1
+    
+    pol_c[[x]] <- fread("../build/data/policies/"%&%pol%&%"/"%&%configpath%&%
+                          "/reduction_"%&%c%&%".csv",
+                        data.table = FALSE) %>%
+      transmute(category, cat_no, 
+                footprint_reduction_rel = round(footprint_reduction_rel, 6),
+                policy                  = pol, 
+                country                 = c, 
+                countryname             = countryname) %>%
+      distinct()
+    
+  } # end country loop
+}# end policy loop
 
-# _ Table: Benefits by country --------------------------------------------
+pol_c <- pol_c %>% bind_rows() %>% distinct()
 
-  GHG_final_bycountry_save <- GHG_final_bycountry %>% 
-    group_by(policy, demandcountry, plotgroup) %>% 
-    dplyr::summarise(value_MEUR=sum(value_MEUR)) %>% rename(country=demandcountry) %>% ungroup()
-  N_final_bycountry_save <- N_final_bycountry %>%
-    group_by(policy, country, plotgroup) %>% 
-    dplyr::summarise(value_MEUR=sum(value_MEUR)) %>% ungroup()
-  P_final_bycountry_save <- P_final_bycountry %>%
-    group_by(policy, country, plotgroup) %>% 
-    dplyr::summarise(value_MEUR=sum(value_MEUR)) %>% ungroup()
-  
-  envbenefits_by_country <- GHG_final_bycountry_save %>%
-    bind_rows(N_final_bycountry_save) %>%
-    bind_rows(P_final_bycountry_save)
-  
-write.csv(envbenefits_by_country, 
-          "../build/tables/"%&%substring(configpath, 1, nchar(configpath)-5)%&%
-            "/benefits_table_bycountry.csv",
-          row.names = FALSE)  
+# Compute reduction in P due to footprint reductions
+P_final <- fp_scp %>% 
+  mutate(country = ifelse(country == "GR", "EL", country)) %>%  
+  left_join(pol_c, by = c("category" = "cat_no", "country"),
+            relationship = "many-to-many") %>%
+  mutate(social_value_of_reduction = SCP*(-footprint_reduction_rel)) %>% 
+  filter(!is.na(policy)) %>% 
+  group_by(policy) %>%
+  summarize(value_MEUR = sum(social_value_of_reduction, na.rm=T)/1000000) %>%
+  mutate(plotgroup = "Phosphorus",
+         s_group = "Phosphorus")
+
+
+# Compute reduction in P due to footprint reductions by country
+P_final_bycountry <- fp_scp %>% 
+  mutate(country = ifelse(country == "GR", "EL", country)) %>%
+  left_join(pol_c, by = c("category" = "cat_no", "country"),
+            relationship = "many-to-many") %>% 
+  mutate(social_value_of_reduction = SCP*(-footprint_reduction_rel)) %>% 
+  filter(!is.na(policy)) %>%
+  group_by(policy, country) %>%
+  summarize(value_MEUR = sum(social_value_of_reduction, na.rm=T)/1000000) %>%
+  mutate(plotgroup = "Phosphorus",
+         s_group = "Phosphorus")
+
 
 # _ Table: Social cost assumptions ----------------------------------------
 
@@ -677,54 +642,33 @@ write(table_social_cost %>%
 # _____________________________________------------------------------------
 # SUMMARY: Waterfall plots ------------------------------------------------
 
- # Combine results
- final <- GHG_final %>%
-   bind_rows(N_final) %>%
-   bind_rows(P_final) %>%
-   bind_rows(welfare_final) %>%
-   bind_rows(tax_inc_final) %>%
-   dplyr::transmute(plotgroup, s_group, policy, value_BEUR=value_MEUR/1e3)
+# Combine results
+final <- GHG_final %>%
+  bind_rows(N_final) %>%
+  bind_rows(P_final) %>%
+  bind_rows(welfare_final) %>%
+  bind_rows(tax_inc_final) %>%
+  dplyr::transmute(plotgroup, s_group, policy, scc,
+                   value_BEUR = value_MEUR/1e3)
+# Load plotting functions
+source("99_functions/plot_functions.R")
 
- # Load plotting functions
- source("99_functions/plot_functions.R")
- 
 # _ Waterfall plot --------------------------------------------------------
 
- # Waterfall plot: Total values
- waterfall_plot(type="total")
- ggsave("../build/figures/"%&%configpath%&%"/waterfall_benefits_costs.pdf", 
-        width = 12, height = 6)
- 
- # Waterfall plot: Per capita values
- waterfall_plot(type="percapita")
- ggsave("../build/figures/"%&%configpath%&%"/waterfall_benefits_costs_pc.pdf", 
-        width = 12, height = 6)
- 
- # Waterfall plot: Per household values
- waterfall_plot(type="perhousehold")
- ggsave("../build/figures/"%&%configpath%&%"/waterfall_benefits_costs_ph.pdf", 
-        width = 12, height = 6)
+# Waterfall plot: Total values
+waterfall_plot(type = "total")
+ggsave("../build/figures/"%&%configpath%&%"/waterfall_benefits_costs.pdf", 
+       width = 12, height = 9)
 
-# _ Waterfall plot simplified ---------------------------------------------
+# Waterfall plot: Per capita values
+waterfall_plot(type = "percapita")
+ggsave("../build/figures/"%&%configpath%&%"/waterfall_benefits_costs_pc.pdf", 
+       width = 12, height = 9)
 
- # Simplified waterfall plot: Total values
- waterfall_plot_simple(type="total")
- 
- # Simplified waterfall plot: Per capita values
- waterfall_plot_simple(type="percapita")
- ggsave("../build/figures/"%&%configpath%&%"/waterfall_benefits_costs_pc_simple.pdf", 
-        width = 7, height = 4)
- 
- # Simplified waterfall plot:Per household values
- waterfall_plot_simple(type="perhousehold")
- ggsave("../build/figures/"%&%configpath%&%"/waterfall_benefits_costs_ph_simple.pdf", 
-        width = 7, height = 4)
- 
-# _ Waterfall plot simplified: German -------------------------------------
- waterfall_plot_simple(type="perhousehold", language="german")
- ggsave("../build/figures/"%&%configpath%&%"/waterfall_benefits_costs_ph_simple_DE.pdf", 
-        width = 7, height = 7)
- 
+# Waterfall plot: Per household values
+waterfall_plot(type = "perhousehold")
+ggsave("../build/figures/"%&%configpath%&%"/waterfall_benefits_costs_ph.pdf", 
+       width = 12, height = 9)
+
 # _____________________________________-----------------------------------------
 # END OF FILE ------------------------------------------------------------------
- 

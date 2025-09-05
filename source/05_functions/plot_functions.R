@@ -825,7 +825,7 @@ plot_policies_compare <- function(countries,
                          "boot_no")
     
     if(boot_exist == "boot_yes"){
-    
+      
       if(pol == "tax_GHG emissions"){
         # Load lower and upper bound of environmental tax from bootstrapping
         env_tax_lo <- ifelse(file.exists("../build/data/bootstrap/"%&%rob%&%
@@ -849,50 +849,50 @@ plot_policies_compare <- function(countries,
         env_tax_lo <- NA
         env_tax_hi <- NA
       }
-    
-    # Compute min and max value of footprint reduction error bars from 
-    # bootstrapping results
-    error <- 
-      { if(pol == "VAT_increase")
+      
+      # Compute min and max value of footprint reduction error bars from 
+      # bootstrapping results
+      error <- 
+        { if(pol == "VAT_increase")
           read.csv("../build/data/bootstrap/"%&%rob%&%
                      "/reduction_VAT_EU27.csv")
-        else if(pol == "tax_GHG emissions")
-          read.csv("../build/data/bootstrap/"%&%rob%&%
-                     "/reduction_tax_EU27.csv")
-      } %>%
-      rename_with(~str_remove(., 'impact_')) %>% 
-      rename(all_of(mapping_impact_no_name)) %>% 
-      summarize(across(everything(), 
-                       .fns = list(lowerbound  = min,
-                                   higherbound = max))) %>%  # change here whether sd, min/max, or 5/95 percentile is used for error bars
-      pivot_longer(cols          = everything(),
-                   values_to     = "error",
-                   names_to      = c("impact", "bound"),
-                   names_pattern = "(.*)_(.*)") %>%
-      pivot_wider(id_cols     = impact,
-                  names_from  = bound,
-                  values_from = error) %>%
-      mutate(policy = pol) 
-    
-    
-    # Aggregate over countries and categories
-    x <-x+1
-    df_rob_all[[x]] <- rob_country_df %>%
-      bind_rows() %>% 
-      # add env_tax column if it does not exist (VAT_increase)
-      mutate(env_tax = ifelse("env_tax" %in% names(.),
-                              env_tax,
-                              NA),
-             env_tax_lo = env_tax_lo,
-             env_tax_hi = env_tax_hi) %>% 
-      group_by(impact_name, env_tax, env_tax_lo, env_tax_hi, unit) %>%
-      dplyr::summarise(footprint_reduction_abs = sum(footprint_reduction_abs)) %>% 
-      ungroup() %>%
-      filter(impact_name %in% selectedindicators) %>%
-      mutate(configuration = rob) %>%
-      { if(boot_exist == "boot_yes")
-        left_join(., error, by = c("impact_name" = "impact")) 
-      }
+          else if(pol == "tax_GHG emissions")
+            read.csv("../build/data/bootstrap/"%&%rob%&%
+                       "/reduction_tax_EU27.csv")
+        } %>%
+        rename_with(~str_remove(., 'impact_')) %>% 
+        rename(all_of(mapping_impact_no_name)) %>% 
+        summarize(across(everything(), 
+                         .fns = list(lowerbound  = min,
+                                     higherbound = max))) %>%  # change here whether sd, min/max, or 5/95 percentile is used for error bars
+        pivot_longer(cols          = everything(),
+                     values_to     = "error",
+                     names_to      = c("impact", "bound"),
+                     names_pattern = "(.*)_(.*)") %>%
+        pivot_wider(id_cols     = impact,
+                    names_from  = bound,
+                    values_from = error) %>%
+        mutate(policy = pol) 
+      
+      
+      # Aggregate over countries and categories
+      x <-x+1
+      df_rob_all[[x]] <- rob_country_df %>%
+        bind_rows() %>% 
+        # add env_tax column if it does not exist (VAT_increase)
+        mutate(env_tax = ifelse("env_tax" %in% names(.),
+                                env_tax,
+                                NA),
+               env_tax_lo = env_tax_lo,
+               env_tax_hi = env_tax_hi) %>% 
+        group_by(impact_name, env_tax, env_tax_lo, env_tax_hi, unit) %>%
+        dplyr::summarise(footprint_reduction_abs = sum(footprint_reduction_abs)) %>% 
+        ungroup() %>%
+        filter(impact_name %in% selectedindicators) %>%
+        mutate(configuration = rob) %>%
+        { if(boot_exist == "boot_yes")
+          left_join(., error, by = c("impact_name" = "impact")) 
+        }
     }
   }
   
@@ -907,23 +907,23 @@ plot_policies_compare <- function(countries,
                                           0)))) %>% 
     # generate new configuration var that specifies difference to main configuration
     mutate(configuration_diff = ifelse(configuration == configpath,
-                                                    "<b>Main*</b>",
-                                                    df_rob_all %>%
-                                                      bind_rows() %>%
-                                                      pull(configuration) %>%
-                                                      split(., 1:length(.)) %>%
-                                                      lapply(., function(x){
-                                                        vsetdiff(x %>% unlist() %>% strsplit(., split = "_") %>% unlist(),
-                                                                 strsplit(configpath, split = "_") %>% unlist()) %>%
-                                                          paste(., collapse = ", ")
-                                                      }) %>%
-                                                      unlist() %>%
-                                                      as.vector()
-                                                    )
+                                       "<b>Main*</b>",
+                                       df_rob_all %>%
+                                         bind_rows() %>%
+                                         pull(configuration) %>%
+                                         split(., 1:length(.)) %>%
+                                         lapply(., function(x){
+                                           vsetdiff(x %>% unlist() %>% strsplit(., split = "_") %>% unlist(),
+                                                    strsplit(configpath, split = "_") %>% unlist()) %>%
+                                             paste(., collapse = ", ")
+                                         }) %>%
+                                         unlist() %>%
+                                         as.vector()
+    )
     ) %>% 
     distinct()
   
-
+  
   if(graph == "reduction"){
     
     # Bar plot for absolute footprint change by food category
@@ -1022,7 +1022,7 @@ plot_welfare_dens <- function(df,
   #' @param line_color line color
   #' @param fill_color fill color
   #' @return plot_return
-
+  
   df %>%
     as_tibble() %>%
     filter(policy == pol) %>%
@@ -1032,8 +1032,8 @@ plot_welfare_dens <- function(df,
       if(pol == "VAT_increase")
         geom_density(aes(color = "VAT reform"),
                      fill  = fill_color)
-        else
-          if(pol == "tax_GHG emissions")
+      else
+        if(pol == "tax_GHG emissions")
           geom_density(aes(color = "GHG emission price"),
                        fill  = fill_color)
     } +
@@ -1053,7 +1053,7 @@ plot_welfare_dens <- function(df,
                            values = c("GHG emission price"          = line_color,
                                       "mean costs"                  = "black",
                                       "mean additional tax revenue" = "black"))
-        } +
+    } +
     scale_y_continuous(labels = label_percent(),
                        limits = c(0, y_lim),
                        breaks = c(0.002, 0.004, 0.006, 0.008)) +
@@ -1070,13 +1070,12 @@ plot_welfare_dens <- function(df,
 # Monetization - Plot functions -------------------------------------------
 
 
-waterfall_plot_simple <- function(type, language = "english"){
+waterfall_plot <- function(type){
   
-  #' @name waterfall_plot_simple
-  #' @title Create simplified waterfall plot for monetized benefits
+  #' @name waterfall_plot
+  #' @title Create waterfall plot for monetized benefits
   #' @param type can be one of "total", "percapita" or "perhousehold"
-  #' @param language can be one of "german" or "english"
-
+  
   # Load EU number of households 
   EU_nhh <- EU_hh_year %>% summarize(nhh = sum(nhh)) %>% pull()
   
@@ -1094,146 +1093,199 @@ waterfall_plot_simple <- function(type, language = "english"){
   # Load EU total population
   EU_npop <- EU_nhh*EU_hhsizeav 
   
-  
-  # Create dataframe to plot (depending on type)
-  df <- final %>% 
-    {
-      if(type=="percapita"){
-        mutate(., value_EUR_pc = value_BEUR*1e9/EU_npop) 
-      } else if(type=="perhousehold"){
-        mutate(., value_EUR_ph = value_BEUR*1e9/EU_nhh)
-      } else{
-        .
-      }
-    } %>%
-    arrange(match(plotgroup, c("GHG emissions", "Phosphorus", "Nitrogen", 
-                               "Tax income", "Consumer surplus"))) %>%
-
-    # summarize by plotgroup (less detailed than waterfall_plot)
-    group_by(policy, plotgroup) %>%
-    {
-      if(type == "total") {
-        summarize(.,value= sum(value_BEUR)) 
-      } else if (type == "percapita") {
-        summarize(., value = sum(value_EUR_pc))
-      } else if (type == "perhousehold") {
-        summarize(., value = sum(value_EUR_ph))
-      } else {
-        .
-      }
-    } %>%
-    # compute net change by policy
-    group_by(policy) %>%
-    {
-      if(type == "total") {
-        mutate(., net_change = sum(value))
-      } else if (type == "percapita") {
-        mutate(., net_change = sum(value))
-      } else if (type == "perhousehold") {
-        mutate(., net_change = sum(value))
-      } else {
-        .
-      }
-    } %>%
-    ungroup() %>%
+  # Create plots
+  plotlist <- list()
+  for(p in c("VAT_increase", policy)){
     
-    # edit for improved visibility (order, names)
-    mutate(plotgroup = factor(plotgroup, 
-                              levels = c("Phosphorus",
-                                         "Nitrogen",
-                                         "GHG emissions",
-                                         "Tax income",
-                                         "Consumer surplus"))) %>%
-    mutate(policy = ifelse(policy == "VAT_increase", "VAT reform",
-                           ifelse(policy=="tax_GHG emissions", 
-                                  "GHG emission price",NA)))
+    # Create dataframe to plot (depending on type)
+    df <- final %>%
+      filter(policy == p) %>%
+      mutate(plotgroup = ifelse(scc != "diff_moore" | is.na(scc),
+                                plotgroup,
+                                "GHG emissions (diff_moore)")) %>%
+      {
+        if(type=="total"){
+          group_by(., plotgroup) %>%
+            summarize(., value = sum(value_BEUR))
+        } else if(type=="percapita"){
+          mutate(., value = value_BEUR*1e9/EU_npop) %>%
+            group_by(., plotgroup) %>%
+            summarize(., value = sum(value))
+        } else if(type=="perhousehold"){
+          mutate(., value = value_BEUR*1e9/EU_nhh) %>%
+            group_by(., plotgroup) %>%
+            summarize(., value = sum(value))
+        } else{
+          .
+        }
+      } %>%
+      arrange(match(plotgroup, c("Consumer surplus", "Tax income",
+                                 "Phosphorus", "Nitrogen", "GHG emissions", "GHG emissions (diff_moore)"))) %>%
+      # bind_rows(data.frame(plotgroup = "Net change")) %>%
+      mutate(row   = row_number(),
+             start = lag(value),
+             start = ifelse(is.na(start),
+                            0,
+                            start),
+             start = cumsum(start),
+             end   = start + value,
+             end   = ifelse(is.na(end),
+                            0,
+                            end),
+             start = ifelse(plotgroup == "GHG emissions (diff_moore)",
+                            lag(start),
+                            start))
     
-  # Define label
-  net_label <- if(type=="total"){
-    "billion EUR"
-  }else if(type=="percapita" | type=="perhousehold"){
-    "EUR"
-  }else{
-    .   
-  }
-  
-  # Define y-axis label
-  y_label <- if(type=="total"){
-    "billion EUR"
-  }else if(type=="percapita"){
-    "EUR p.c."
-  }else if(type=="perhousehold"){
-    "EUR per household"
-  }else{
-    .   
-  }
-  
-  if(language=="german"){
-    
-    # Adjust df
-    df <- df %>%
-      mutate(policy = case_when(policy == "VAT reform" ~ "Anpassung der MwSt.", 
-                                policy == "GHG emission price" ~ "CO2-Preis"),
-             plotgroup = factor(case_when(plotgroup == "Consumer surplus" ~ "Konsumentenrente", 
-                                   plotgroup == "GHG emissions" ~ "THG-Emissionen",
-                                   plotgroup == "Nitrogen" ~ "Stickstoff",
-                                   plotgroup == "Phosphorus" ~ "Phosphor",
-                                   plotgroup == "Tax income" ~ "Steuereinnahmen"))) %>%
-      # edit for improved visibility (order, names)
-      mutate(plotgroup = factor(plotgroup, 
-                                levels = c("Phosphor",
-                                           "Stickstoff",
-                                           "THG-Emissionen",
-                                           "Steuereinnahmen",
-                                           "Konsumentenrente"))) 
-    
-    # Adjust y-axis label
+    # Define y-axis label
     y_label <- if(type=="total"){
-      "Mrd. EUR"
+      "billion EUR"
     }else if(type=="percapita"){
-      "EUR/Person"
+      "EUR p.c."
     }else if(type=="perhousehold"){
-      "EUR/Haushalt"
+      "EUR per household"
     }else{
       .   
     }
     
+    # Define  y-axis limits
+    y_limits <- if (type == "total"){
+      c(-30, 15)
+    }else if(type == "percapita"){
+      c(-70, 30)
+    }else if(type == "perhousehold"){
+      c(-155, 70)
+    } else {
+      NULL
+    }
+    
+    # Define colours
+    colours <- col_intensity_indicators %>%
+      dplyr::filter(indicator %in% final$plotgroup) %>%
+      add_row(indicator = "Tax income", col_intensity = "#878c8f") %>%
+      add_row(indicator = "Consumer surplus", col_intensity = "black") %>%
+      arrange(match(indicator, df %>% pull(plotgroup) %>% unique())) %>%
+      dplyr::select(col_intensity) %>% pull()
+    
+    # Plot
+    temp_plot <- ggplot(df %>%
+                          mutate(plotgroup_display = ifelse(plotgroup == "GHG emissions (diff_moore)",
+                                                            "GHG emissions",
+                                                            plotgroup),
+                                 row = ifelse(plotgroup == "GHG emissions (diff_moore)" | plotgroup == "GHG emissions",
+                                              5,
+                                              row),
+                                 # Add alpha mapping - upper segment (diff_moore) gets transparency
+                                 alpha_level = ifelse(plotgroup == "GHG emissions (diff_moore)", 0.6, 1.0)),
+                        aes(fill = plotgroup_display, alpha = alpha_level)) +
+      geom_rect(aes(xmin = row - 0.4,
+                    xmax = row + 0.4,
+                    ymin = start,
+                    ymax = end)) +
+      geom_segment(aes(x    = ifelse(row == max(row), NA, row - 0.4),
+                       xend = ifelse(row == max(row), NA, row + 1 + 0.4),
+                       y    = end,
+                       yend = end),
+                   color = "black") +
+      geom_segment(aes(x    = ifelse(row == max(row),
+                                     NA,
+                                     row + 1 + 0.4),
+                       xend = ifelse(row == max(row),
+                                     NA,
+                                     row + 1 + 0.4 + 0.2),
+                       y    = end,
+                       yend = end),
+                   color = "black") +
+      geom_segment(aes(x    = ifelse(plotgroup_display == "GHG emissions",
+                                     row - 0.4,
+                                     NA),
+                       xend = ifelse(plotgroup_display == "GHG emissions",
+                                     row+ 0.4 + 0.2 ,
+                                     NA),
+                       y    = end,
+                       yend = end),
+                   color = "black")
+    
+    plotlist[[p]]  <- temp_plot +
+      geom_text(x     = 3.1,
+                y     = df %>% filter(plotgroup == "Consumer surplus") %>% pull(end) + 0.75,
+                label = format(round(df %>% filter(plotgroup == "Consumer surplus") %>% pull(end), 2), nsmall = 2),
+                size  = 4,
+                color = "#495057",
+                check_overlap = TRUE) +
+      geom_text(x     = 4,
+                y     = df %>% filter(plotgroup == "Tax income") %>% pull(end) + 0.75,
+                label = format(round(df %>% filter(plotgroup == "Tax income") %>% pull(end), 2), nsmall = 2),
+                size  = 4,
+                color = "#495057",
+                check_overlap = TRUE) +
+      geom_text(x     = 4.9,
+                y     = df %>% filter(plotgroup == "Phosphorus") %>% pull(end) + 0.75,
+                label = format(round(df %>% filter(plotgroup == "Phosphorus") %>% pull(end), 2), nsmall = 2),
+                size  = 4,
+                color = "#495057",
+                check_overlap = TRUE) +
+      geom_text(x     = 5.95,
+                y     = df %>% filter(plotgroup == "Nitrogen") %>% pull(end) + 0.75,
+                label = format(round(df %>% filter(plotgroup == "Nitrogen") %>% pull(end), 2), nsmall = 2),
+                size  = 4,
+                color = "#495057",
+                check_overlap = TRUE) +
+      geom_text(x     = 6.05,
+                y     = df %>% filter(plotgroup == "GHG emissions") %>% pull(end) + 0.75,
+                label = paste(format(round(df %>% filter(plotgroup == "GHG emissions") %>% pull(end),
+                                           2), nsmall = 2),
+                              "**"),
+                size  = 4,
+                color = "#495057",
+                check_overlap = TRUE) +
+      geom_text(x     = 6.02,
+                y     = df %>% filter(plotgroup == "GHG emissions (diff_moore)") %>% pull(end) + 0.75,
+                label = paste(format(round(df %>% filter(plotgroup == "GHG emissions (diff_moore)") %>% pull(end),
+                                           2), nsmall = 2),
+                              "*"),
+                size  = 4,
+                color = "#495057",
+                check_overlap = TRUE) +
+      scale_x_continuous(breaks = df[-nrow(df), ] %>% 
+                           filter(plotgroup != "GHG emissions (diff_moore)") %>% 
+                           pull(row),
+                         labels = df[-nrow(df), ] %>% 
+                           filter(plotgroup != "GHG emissions (diff_moore)") %>% 
+                           pull(plotgroup),
+                         limits = c(0.6, nrow(df) + 0.3)) +
+      scale_fill_manual(breaks = df[-nrow(df), ] %>%
+                          filter(plotgroup != "GHG emissions (diff_moore)") %>%
+                          pull(plotgroup),
+                        values = colours) +
+      scale_alpha_identity() +  # This ensures the alpha values are used as-is
+      theme_c1m3() +
+      labs(title = ifelse(p == "VAT_increase",
+                          "VAT reform",
+                          "GHG emission price")) +
+      {if(p == policy)
+        labs(caption = "*  net change based on Moore et al. (2024)  (283 USD/tCO2)\n
+           ** net change based on EPA (2023) (193 USD/tCO2))            ")
+        else
+          labs(caption = " \n ")} +
+      xlab("") +
+      theme(legend.title = element_blank(),
+            axis.title.y = element_text(),
+            axis.text.x  = element_text(angle = 90, vjust = 1, hjust=1, size = 12),
+            plot.title   = element_text(size = 14),
+            plot.caption = element_text(size = 10))+
+      guides(fill = guide_legend(nrow = 3))+
+      ylab(y_label) +
+      ylim(y_limits)
+    
   }
   
-  # Define colours
-  colours <- c("#f4a261", "#e9c46a", "#a50f15", "#495057", "#878c8f")
-
-  # Simplified plot of benefits
-  df %>% 
-    ggplot() +
-    geom_bar(aes(x = policy, 
-                 y = value,
-                 fill = plotgroup),
-             stat="identity",
-             width = 0.6) +
-    geom_point(aes(x = policy, 
-                   y=net_change),
-               shape=18,
-               size=4,
-               colour="#e0e1dd")+
-    geom_text(aes(x = policy, 
-                  y=net_change,
-                  label=paste(round(net_change,2), net_label)),
-              hjust=0.5, vjust=-1,
-              colour="#e0e1dd")+
-    geom_hline(yintercept=0,
-               linewidth=1,
-               linetype = "dashed")+
-    scale_fill_manual(values = colours) +
-    theme_c1m3() +
-    ylab(y_label) +
-    xlab("") +
-    guides(fill = guide_legend(nrow = 5))+
-    theme(panel.grid.major.x = element_blank(),
-          panel.grid.major.y = element_line(color = "#cbcbcb"),
-          axis.title  = element_text(size=14),
-          legend.position="right")
-
+  # Plot for all policies
+  ggarrange(plotlist      = plotlist,
+            common.legend = T, 
+            legend        = "bottom") %>%
+    annotate_figure(top = text_grob("Monetized social welfare change per household due to...\n",
+                                    size = 16, face = "bold"))
+  
 }
 
 # _____________________________________------------------------------------
