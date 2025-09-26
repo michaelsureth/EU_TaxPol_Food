@@ -19,7 +19,7 @@ options(future.globals.maxSize = size_in_mb*1024^2)
 options(dplyr.summarise.inform = FALSE)
 
 # Load packages
-source("99_functions/load_packages.R")
+source("05_functions/load_packages.R")
 
 # Clean workspace
 rm(list = ls())
@@ -31,7 +31,7 @@ config <- read.table("config_default.do") %>%
   t() %>% as.data.frame() %>% as.list()
 
 # Save config_default as config defining correct procdatapath
-source("99_functions/helper_functions.R")
+source("05_functions/helper_functions.R")
 config <- adjust_config(parameter = "procdatapath", 
                         value = gsub("source", "build/data/", getwd()))
 
@@ -39,9 +39,9 @@ config <- adjust_config(parameter = "procdatapath",
 plan(multicore, workers = as.numeric(availableCores(omit = 1)))
 
 # Source user-defined functions
-functions <- c("99_functions/dse_functions.R",
-               "99_functions/policy_functions.R",
-               "99_functions/mrio_functions.R")
+functions <- c("05_functions/dse_functions.R",
+               "05_functions/policy_functions.R",
+               "05_functions/mrio_functions.R")
 invisible(lapply(functions, source))
 
 # EU country names and subregions by UN geoscheme

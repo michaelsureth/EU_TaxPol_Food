@@ -20,7 +20,7 @@
     }
   
   # prepare workspace
-  source("99_functions/preparations.R")
+  source("05_functions/preparations.R")
 
 
 # Data preparation --------------------------------------------------------
@@ -65,7 +65,7 @@
 # _ Create plots and tables -----------------------------------------------
 
 # Source functions for plotting
-  source("99_functions/plot_functions.R")
+  source("05_functions/plot_functions.R")
 
 # Create elasticity plots
   source("03_plots/plots_elasticities.R")

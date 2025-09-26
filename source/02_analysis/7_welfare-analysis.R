@@ -9,7 +9,7 @@
 # Preparations -----------------------------------------------------------------
 
 # Load functions
-source("99_functions/welfare_functions.R")
+source("05_functions/welfare_functions.R")
 
 # Set configpath
 configpath <- config$p_to_norm%&%"_"%&%

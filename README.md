@@ -13,7 +13,7 @@ This is the R and Stata code for Plinke et al. (2024). _Environmental Impacts fr
 
 1. Define settings in config_default.do:
 - General settings
-	- `procdatapath`: Path name. Can be kept empty as this is set automatically in `/source/99_functions/preparations.R`.
+	- `procdatapath`: Path name. Can be kept empty as this is set automatically in `/source/05_functions/preparations.R`.
 	- `statapath`: Path name. Specify the path to Stata(console) on your machine (stata-se).
 	- `stataversion`: Integer. Specify your stata version (e.g., "18").
 	- `categorization`: The only allowed value is "cat10". However, the code is flexible enough to allow for other categorizations than the ten food categories this analysis is based on. The categorization is retrieved from the file `/source/00_data/manual_input/categorization_fooditems.xlsx`. The value of `categorization` corresponds to the sheet name of `categorization_fooditems.xlsx`.

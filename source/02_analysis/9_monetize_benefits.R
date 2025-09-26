@@ -651,7 +651,7 @@ final <- GHG_final %>%
   dplyr::transmute(plotgroup, s_group, policy, scc,
                    value_BEUR = value_MEUR/1e3)
 # Load plotting functions
-source("99_functions/plot_functions.R")
+source("05_functions/plot_functions.R")
 
 # _ Waterfall plot --------------------------------------------------------
 
