@@ -1,6 +1,6 @@
 # Environmental Impacts from European Food Consumption Can Be Reduced with Carbon Pricing or a Value-Added Tax Reform
 Summary:
-This is the R and Stata code for Plinke et al. (2024). _Environmental Impacts from European Food Consumption Can Be Reduced with Carbon Pricing or a Value-Added Tax Reform_. Submitted to Nature Food. The code was developed by C. Plinke and M. Sureth.
+This is the R and Stata code for Plinke, C., Sureth, M., Kalkuhl, M. (2025). _Environmental Impacts from European Food Consumption Can Be Reduced with Carbon Pricing or a Value-Added Tax Reform_. Forthcoming in Nature Food. The code was developed by C. Plinke and M. Sureth.
 
 ## Prerequites
 - Software: The analysis was conducted using RStudio Version 2023.12.1+402, R Version 4.3.2, and Stata SE Version 18.0
@@ -53,7 +53,7 @@ Authors:
 - Charlotte Plinke, cplinke@pik-potsdam.de, Potsdam Institute for Climate Impact Research, Member of the Leibniz Association, Telegrafenberg A 31, 14473 Potsdam, Germany
 - Michael Sureth, michael.sureth@pik-potsdam.de, Potsdam Institute for Climate Impact Research, Member of the Leibniz Association, Telegrafenberg A 31, 14473 Potsdam, Germany
 
-Citation: Plinke, C. and Sureth, M. (2024). _Code for Environmental Impacts from European Food Consumption Can Be Reduced with Carbon Pricing or a Value-Added Tax Reform_. Submitted to Nature Food.
+Citation: Plinke, C. and Sureth, M. (2025). _Code for Environmental Impacts from European Food Consumption Can Be Reduced with Carbon Pricing or a Value-Added Tax Reform_. Forthcoming in Nature Food.
 
 Parts of our code build on the work contained in the R-package [easi](https://cran.r-project.org/src/contrib/Archive/easi/) by Hoareau, S. et al. (2012) as well as on code and input data kindly shared by Benedikt Bruckner to whom we would like to express our sincere gratitude.
 
