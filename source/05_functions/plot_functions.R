@@ -44,8 +44,11 @@ cat10_plot <- fread(config$procdatapath%&%"intermediate_output/"%&%
   geom_bar(stat = "identity") +
   scale_fill_manual(values = rev(food_colours_10)) + 
   theme(legend.title = element_blank(),
-        legend.text  = element_text(size = 13))+
-  guides(fill = guide_legend(reverse = F, nrow = 2, byrow = TRUE)) 
+        legend.text  = element_text(size = 5),
+        legend.key.size = unit(0.3, "cm"),
+        legend.key = element_rect(fill = NA, colour = NA))+
+  guides(fill = guide_legend(reverse = F, nrow = 2, byrow = TRUE,
+                             override.aes = list(colour = NA))) 
 
 # Extract legend
 cat10_legend <- cowplot::get_legend(cat10_plot)
@@ -55,32 +58,34 @@ rm(cat10_plot)
 
 # Standard plot format ----------------------------------------------------
 # building on BBC formatting scripts (https://github.com/bbc/bbplot)
-
+    
 theme_c1m3 <- function(){
   
   # choose font (e.g., from “Font Book” application on Mac)
-  font <- "sans"
+  font <- "Helvetica"
   
   ggplot2::theme(
+    
+    base_size = 6,
     
     # title, subtitle and caption
     plot.title = ggplot2::element_text(hjust  = 0,
                                        family = font,
-                                       size   = 22,
+                                       size   = 7,
                                        face   = "bold",
                                        margin=margin(0,0,15,0)),
     
     plot.subtitle = ggplot2::element_text(family = font,
-                                          size   = 20,
+                                          size   = 6,
                                           margin = ggplot2::margin(9, 0, 9, 0)),
     
     plot.caption = ggplot2::element_text(family = font,
-                                         size   = 14),
+                                         size   = 6),
     
     # legend
     legend.position   = "bottom",
     legend.text       = ggplot2::element_text(family = font,
-                                              size   = 12),
+                                              size   = 5),
     legend.text.align = 0,
     legend.background = ggplot2::element_blank(),
     legend.title      = ggplot2::element_blank(),
@@ -89,14 +94,13 @@ theme_c1m3 <- function(){
     # axes
     axis.title  = ggplot2::element_blank(),
     axis.text   = ggplot2::element_text(family = font,
-                                        size   = 14,
+                                        size   = 5,
                                         color  = "#222222"),
-    axis.ticks  = ggplot2::element_blank(),
     axis.line   = ggplot2::element_line(color = "#222222"),
     
     # panel grid 
     panel.grid.minor   = ggplot2::element_blank(),
-    panel.grid.major.y = ggplot2::element_line(color = "#cbcbcb"),
+    panel.grid.major.y = ggplot2::element_blank(),
     panel.grid.major.x = ggplot2::element_blank(),
     
     # background
@@ -104,12 +108,13 @@ theme_c1m3 <- function(){
     # background facet plots
     strip.background = element_blank(),
     # title for facet-wrapped plots
-    strip.text = ggplot2::element_text(size  = 16,
-                                       hjust = 0.5)
+    strip.text = ggplot2::element_text(size  = 5,
+                                       hjust = 0.5,
+                                       face = "bold")
   )
 }
 
-
+  
 
 
 # DSE - Plot functions ----------------------------------------------------
@@ -221,6 +226,12 @@ plot_CPEs <- function(type,
     left_join(catexplain, by = c("catname" = "category_name_new")) %>%
     mutate(catname = reorder(catname, category_code_new.y, decreasing = FALSE)) 
   
+  # Save source data
+    write.csv(df_plot %>% 
+                dplyr::select(category.x = catname, category.y = category_name_new, country, value), 
+              name_figE1%&%".csv", 
+              row.names = FALSE)
+
   # Plot own- and cross-price elasticities with density plot
   plot_return <- df_plot %>%
     ggplot(aes(x           = value,
@@ -231,10 +242,11 @@ plot_CPEs <- function(type,
     geom_density_ridges(aes(height = after_stat(density)),
                         stat           = "density",
                         rel_min_height = 0.001,
-                        scale          = 0.8) +
-    geom_point(shape = 108, size = 1.5) +
-    geom_vline(xintercept =  0, colour = "black",  linetype = 1, linewidth = 0.7) +
-    geom_vline(xintercept = -1, colour = "grey60", linetype = 2) +
+                        scale          = 0.8,
+                        linewidth = 0.3) +
+    geom_point(shape = 108, size = 1) +
+    geom_vline(xintercept =  0, colour = "black",  linetype = 1, linewidth = 0.2) +
+    geom_vline(xintercept = -1, colour = "grey60", linetype = 2, linewidth = 0.2) +
     facet_grid(~catname,
                labeller = label_wrap_gen(width = 11, multi_line = TRUE)) +
     scale_fill_manual( values = c("#669bbc40","#00304940")) +
@@ -248,11 +260,12 @@ plot_CPEs <- function(type,
     ylab("") + xlab("") +
     theme_c1m3() +
     theme(
-      strip.text      = element_text(size = 16, hjust = 0.7),
-      axis.line.x     = element_line(color="grey", linewidth = 0.5),
+      strip.text      = element_text(size = 5, hjust = 0.7, face = "plain"),
+      axis.line.x     = element_line(color = "grey", linewidth = 0.3),
+      panel.grid.major.y =  element_line(color = "grey", linewidth = 0.2), 
       axis.line.y     = element_blank(),
-      axis.text.x     = element_text(size = 12),
-      axis.text.y     = element_text(size = 16),
+      axis.text.x     = element_text(size = 5),
+      axis.text.y     = element_text(size = 5),
       legend.position = "none"
     )
   
@@ -414,6 +427,23 @@ simplebar_footprint_inout <- function(demandcountries,
     mutate(total = sum(value.target),
            share = value.target/total) 
   
+  # Save source data
+  df_save <- df_plot %>% 
+    transmute(country = NA, 
+              value = share, 
+              var = catname_displ, 
+              indicator = selectedindicator)
+  
+  if (file.exists(file_footprints)) {
+    write.csv(unique(rbind(read.csv(file_footprints), df_save)), 
+              file_footprints, 
+              row.names = FALSE)
+  } else {
+    write.csv(df_save, 
+              file_footprints, 
+              row.names = FALSE)
+  }
+  
   # pull indicator colour
   colour <- col_intensity_indicators %>%
     filter(indicator == selectedindicator) %>% 
@@ -428,10 +458,12 @@ simplebar_footprint_inout <- function(demandcountries,
                x    = x)) +
     geom_bar(position = position_stack(reverse = TRUE),
              stat     = "identity",
-             color    = "black") +
+             color    = "black",
+             size     = 0.2,
+             width = 2) +
     geom_text(aes(label  = paste0(in_EU, " EU: ", round(100*share,0), "%"),
                   colour = forcats::fct_rev(in_EU)),
-              size     = 5,
+              size     = 5/.pt,
               position = position_stack(vjust = 0.5, reverse = TRUE)) +
     scale_color_manual(values = c("white", "black")) +
     scale_fill_manual(values  = custom_palette) +
@@ -551,6 +583,23 @@ create_footprint_map <- function(what,
         group_by(demandcountry) %>%
         dplyr::summarise(value.target = sum(value.target, na.rm = TRUE))
       
+      # Save source data
+      df_save <- df_plot %>% 
+        transmute(country = demandcountry, 
+                  value = value.target, 
+                  var = what, 
+                  indicator = indicator_name_short)
+      
+      if (file.exists(file_footprints)) {
+        write.csv(unique(rbind(read.csv(file_footprints), df_save)), 
+                  file_footprints, 
+                  row.names = FALSE)
+      } else {
+        write.csv(df_save, 
+                  file_footprints, 
+                  row.names = FALSE)
+      }
+      
     }else if(type=="percapita"){
       df_plot <- df_all %>%
         mutate(value.target = value/population) %>% # note we call this value.target even though we use orig value
@@ -591,14 +640,19 @@ create_footprint_map <- function(what,
       full_join(shp_eu, by = c("demandcountry"="geo")) %>% 
       st_as_sf()
     
-    # Plot EU
-    plot_return <- df_plot_shp %>%
-      ggplot(aes(fill = value.target)) + 
-      geom_sf(size = 0.05) +
+    # Plot EU with non-EU countries in background
+    plot_return <- ggplot() +
+      geom_sf(data = shp_noneu, fill = "#7F7F7F", color = "#595959", size = 0.05) +  # Match border styling
+      geom_sf(data = df_plot_shp, aes(fill = value.target), color = "#595959", size = 0.05) +  # Add explicit border color
       scale_fill_gradientn(limits  = plot_lims,
                            colours = col_intensity, 
                            name    = plot_legend) +
-      theme_void()+
+      theme_void(base_size = 5)+
+      theme(legend.text       = element_text(size   = 5,
+                                             family = "Helvetica"),
+            legend.title      = element_text(size   = 5,
+                                             family = "Helvetica"),
+            legend.key.size   = unit(0.3, "cm")) +
       ggtitle(titleprep)+
       scale_x_continuous(limits = c(-10, 35)) +
       scale_y_continuous(limits = c( 35, 70))
@@ -612,6 +666,25 @@ create_footprint_map <- function(what,
         dplyr::summarise(value.target = sum(value.target, na.rm = TRUE)) %>%
         ungroup() %>%
         mutate(imp_reg_code = as.character(imp_reg_code))
+      
+      # Save source data
+      df_save <- df_plot %>% 
+        mutate(imp_reg_code = as.double(imp_reg_code)) %>%
+        left_join(EXIO_region_df[,c("EXIO_code", "iso_2")], by = c("imp_reg_code"="EXIO_code")) %>%
+        transmute(country = iso_2, 
+                  value = value.target, 
+                  var = "impact", 
+                  indicator = indicator_name_short)
+      if (file.exists(file_footprints)) {
+        write.csv(unique(rbind(read.csv(file_footprints), df_save)), 
+                  file_footprints, 
+                  row.names = FALSE)
+      } else {
+        write.csv(df_save, 
+                  file_footprints, 
+                  row.names = FALSE)
+      }
+      
     }else if(type=="percapita"){
       break("Option what==importedfrom not available in combination with type==percapita.")
     }
@@ -635,8 +708,7 @@ create_footprint_map <- function(what,
     
     # Add spatial dimension to dataframe
     world_for_plot <- world_df %>%
-      left_join(df_plot, by = c("id"="imp_reg_code")) %>%
-      filter(!is.na(value.target))
+      left_join(df_plot, by = c("id" = "imp_reg_code"))
     
     # Plot world map
     plot_return <- ggplot(data = world_for_plot) + 
@@ -647,7 +719,7 @@ create_footprint_map <- function(what,
                    colour = "black", linewidth = 0.05) +
       scale_fill_gradientn(colours = col_intensity,  
                            limits  = plot_lims, 
-                           name    = plot_legend ) + 
+                           name    = plot_legend) +
       coord_equal(1.3) +
       theme_void() +
       ggtitle(titleprep)
@@ -825,7 +897,7 @@ plot_policies_compare <- function(countries,
                          "boot_no")
     
     if(boot_exist == "boot_yes"){
-      
+    
       if(pol == "tax_GHG emissions"){
         # Load lower and upper bound of environmental tax from bootstrapping
         env_tax_lo <- ifelse(file.exists("../build/data/bootstrap/"%&%rob%&%
@@ -849,50 +921,50 @@ plot_policies_compare <- function(countries,
         env_tax_lo <- NA
         env_tax_hi <- NA
       }
-      
-      # Compute min and max value of footprint reduction error bars from 
-      # bootstrapping results
-      error <- 
-        { if(pol == "VAT_increase")
+    
+    # Compute min and max value of footprint reduction error bars from 
+    # bootstrapping results
+    error <- 
+      { if(pol == "VAT_increase")
           read.csv("../build/data/bootstrap/"%&%rob%&%
                      "/reduction_VAT_EU27.csv")
-          else if(pol == "tax_GHG emissions")
-            read.csv("../build/data/bootstrap/"%&%rob%&%
-                       "/reduction_tax_EU27.csv")
-        } %>%
-        rename_with(~str_remove(., 'impact_')) %>% 
-        rename(all_of(mapping_impact_no_name)) %>% 
-        summarize(across(everything(), 
-                         .fns = list(lowerbound  = min,
-                                     higherbound = max))) %>%  # change here whether sd, min/max, or 5/95 percentile is used for error bars
-        pivot_longer(cols          = everything(),
-                     values_to     = "error",
-                     names_to      = c("impact", "bound"),
-                     names_pattern = "(.*)_(.*)") %>%
-        pivot_wider(id_cols     = impact,
-                    names_from  = bound,
-                    values_from = error) %>%
-        mutate(policy = pol) 
-      
-      
-      # Aggregate over countries and categories
-      x <-x+1
-      df_rob_all[[x]] <- rob_country_df %>%
-        bind_rows() %>% 
-        # add env_tax column if it does not exist (VAT_increase)
-        mutate(env_tax = ifelse("env_tax" %in% names(.),
-                                env_tax,
-                                NA),
-               env_tax_lo = env_tax_lo,
-               env_tax_hi = env_tax_hi) %>% 
-        group_by(impact_name, env_tax, env_tax_lo, env_tax_hi, unit) %>%
-        dplyr::summarise(footprint_reduction_abs = sum(footprint_reduction_abs)) %>% 
-        ungroup() %>%
-        filter(impact_name %in% selectedindicators) %>%
-        mutate(configuration = rob) %>%
-        { if(boot_exist == "boot_yes")
-          left_join(., error, by = c("impact_name" = "impact")) 
-        }
+        else if(pol == "tax_GHG emissions")
+          read.csv("../build/data/bootstrap/"%&%rob%&%
+                     "/reduction_tax_EU27.csv")
+      } %>%
+      rename_with(~str_remove(., 'impact_')) %>% 
+      rename(all_of(mapping_impact_no_name)) %>% 
+      summarize(across(everything(), 
+                       .fns = list(lowerbound  = min,
+                                   higherbound = max))) %>%  # change here whether sd, min/max, or 5/95 percentile is used for error bars
+      pivot_longer(cols          = everything(),
+                   values_to     = "error",
+                   names_to      = c("impact", "bound"),
+                   names_pattern = "(.*)_(.*)") %>%
+      pivot_wider(id_cols     = impact,
+                  names_from  = bound,
+                  values_from = error) %>%
+      mutate(policy = pol) 
+    
+    
+    # Aggregate over countries and categories
+    x <-x+1
+    df_rob_all[[x]] <- rob_country_df %>%
+      bind_rows() %>% 
+      # add env_tax column if it does not exist (VAT_increase)
+      mutate(env_tax = ifelse("env_tax" %in% names(.),
+                              env_tax,
+                              NA),
+             env_tax_lo = env_tax_lo,
+             env_tax_hi = env_tax_hi) %>% 
+      group_by(impact_name, env_tax, env_tax_lo, env_tax_hi, unit) %>%
+      dplyr::summarise(footprint_reduction_abs = sum(footprint_reduction_abs)) %>% 
+      ungroup() %>%
+      filter(impact_name %in% selectedindicators) %>%
+      mutate(configuration = rob) %>%
+      { if(boot_exist == "boot_yes")
+        left_join(., error, by = c("impact_name" = "impact")) 
+      }
     }
   }
   
@@ -907,23 +979,23 @@ plot_policies_compare <- function(countries,
                                           0)))) %>% 
     # generate new configuration var that specifies difference to main configuration
     mutate(configuration_diff = ifelse(configuration == configpath,
-                                       "<b>Main*</b>",
-                                       df_rob_all %>%
-                                         bind_rows() %>%
-                                         pull(configuration) %>%
-                                         split(., 1:length(.)) %>%
-                                         lapply(., function(x){
-                                           vsetdiff(x %>% unlist() %>% strsplit(., split = "_") %>% unlist(),
-                                                    strsplit(configpath, split = "_") %>% unlist()) %>%
-                                             paste(., collapse = ", ")
-                                         }) %>%
-                                         unlist() %>%
-                                         as.vector()
-    )
+                                                    "<b>Main*</b>",
+                                                    df_rob_all %>%
+                                                      bind_rows() %>%
+                                                      pull(configuration) %>%
+                                                      split(., 1:length(.)) %>%
+                                                      lapply(., function(x){
+                                                        vsetdiff(x %>% unlist() %>% strsplit(., split = "_") %>% unlist(),
+                                                                 strsplit(configpath, split = "_") %>% unlist()) %>%
+                                                          paste(., collapse = ", ")
+                                                      }) %>%
+                                                      unlist() %>%
+                                                      as.vector()
+                                                    )
     ) %>% 
     distinct()
   
-  
+
   if(graph == "reduction"){
     
     # Bar plot for absolute footprint change by food category
@@ -1018,11 +1090,11 @@ plot_welfare_dens <- function(df,
   #' @param x_lim Upper limit of x-axis
   #' @param y_lim Upper limit of y-axis
   #' @param mean_tax_inc Weighted mean of tax income used to add vertical line
-  #' @param mean_lcol Weighted mean of costs used to add vertical line
+  #' @param mean_col Weighted mean of costs used to add vertical line
   #' @param line_color line color
   #' @param fill_color fill color
   #' @return plot_return
-  
+
   df %>%
     as_tibble() %>%
     filter(policy == pol) %>%
@@ -1032,8 +1104,8 @@ plot_welfare_dens <- function(df,
       if(pol == "VAT_increase")
         geom_density(aes(color = "VAT reform"),
                      fill  = fill_color)
-      else
-        if(pol == "tax_GHG emissions")
+        else
+          if(pol == "tax_GHG emissions")
           geom_density(aes(color = "GHG emission price"),
                        fill  = fill_color)
     } +
@@ -1053,29 +1125,25 @@ plot_welfare_dens <- function(df,
                            values = c("GHG emission price"          = line_color,
                                       "mean costs"                  = "black",
                                       "mean additional tax revenue" = "black"))
-    } +
+        } +
     scale_y_continuous(labels = label_percent(),
                        limits = c(0, y_lim),
                        breaks = c(0.002, 0.004, 0.006, 0.008)) +
     xlim(0, x_lim) +
     theme_c1m3() +
-    theme(panel.grid.major.x = element_line(color = "grey",
-                                            linewidth = 0.5),
-          panel.grid.major.y = element_blank(),
+    theme(panel.grid.major.y = element_blank(),
           plot.margin        = margin(0, 0, 0, 0))
 }
 
 
-
 # Monetization - Plot functions -------------------------------------------
-
 
 waterfall_plot <- function(type){
   
   #' @name waterfall_plot
   #' @title Create waterfall plot for monetized benefits
   #' @param type can be one of "total", "percapita" or "perhousehold"
-  
+
   # Load EU number of households 
   EU_nhh <- EU_hh_year %>% summarize(nhh = sum(nhh)) %>% pull()
   
@@ -1106,15 +1174,15 @@ waterfall_plot <- function(type){
       {
         if(type=="total"){
           group_by(., plotgroup) %>%
-            summarize(., value = sum(value_BEUR))
+          summarize(., value = sum(value_BEUR))
         } else if(type=="percapita"){
           mutate(., value = value_BEUR*1e9/EU_npop) %>%
-            group_by(., plotgroup) %>%
-            summarize(., value = sum(value))
+          group_by(., plotgroup) %>%
+          summarize(., value = sum(value))
         } else if(type=="perhousehold"){
           mutate(., value = value_BEUR*1e9/EU_nhh) %>%
-            group_by(., plotgroup) %>%
-            summarize(., value = sum(value))
+          group_by(., plotgroup) %>%
+          summarize(., value = sum(value))
         } else{
           .
         }
@@ -1190,18 +1258,18 @@ waterfall_plot <- function(type){
                                      NA,
                                      row + 1 + 0.4),
                        xend = ifelse(row == max(row),
-                                     NA,
-                                     row + 1 + 0.4 + 0.2),
+                                      NA,
+                                      row + 1 + 0.4 + 0.2),
                        y    = end,
                        yend = end),
                    color = "black") +
-      geom_segment(aes(x    = ifelse(plotgroup_display == "GHG emissions",
-                                     row - 0.4,
-                                     NA),
+      geom_segment(aes(x = ifelse(plotgroup_display == "GHG emissions",
+                                  row - 0.4,
+                                  NA),
                        xend = ifelse(plotgroup_display == "GHG emissions",
                                      row+ 0.4 + 0.2 ,
                                      NA),
-                       y    = end,
+                       y = end,
                        yend = end),
                    color = "black")
     
@@ -1269,7 +1337,8 @@ waterfall_plot <- function(type){
           labs(caption = " \n ")} +
       xlab("") +
       theme(legend.title = element_blank(),
-            axis.title.y = element_text(),
+            legend.text  = element_text(size = 10),
+            axis.text.y  = element_text(size = 10),
             axis.text.x  = element_text(angle = 90, vjust = 1, hjust=1, size = 12),
             plot.title   = element_text(size = 14),
             plot.caption = element_text(size = 10))+
@@ -1282,10 +1351,7 @@ waterfall_plot <- function(type){
   # Plot for all policies
   ggarrange(plotlist      = plotlist,
             common.legend = T, 
-            legend        = "bottom") %>%
-    annotate_figure(top = text_grob("Monetized social welfare change per household due to...\n",
-                                    size = 16, face = "bold"))
-  
+            legend        = "bottom")
 }
 
 # _____________________________________------------------------------------

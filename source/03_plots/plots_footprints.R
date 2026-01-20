@@ -78,6 +78,7 @@ df_4 <- df_1 %>% filter(catname == "Food") %>% dplyr::select(shortname, value.ta
                    pb_rel = value.target/pb,
                    ratio = value.target/pb_rel)
 
+
 # (5) Combine
 df_all <- bind_rows(df_1, df_2, df_3) %>%
   mutate(fill = reorder(catname, as.numeric(foodgroup),  decreasing = F)) %>%
@@ -85,9 +86,10 @@ df_all <- bind_rows(df_1, df_2, df_3) %>%
   # add planetary boundaries
   bind_rows(df_4) %>%
   mutate(categorization = ifelse(!is.na(pb), "Food\nconsumption", categorization)) %>%
-  mutate(categorization = ordered(categorization, 
-                                  levels = c("Total\nconsumption", 
-                                             "Food\nconsumption"))) 
+  mutate(categorization = recode(categorization,
+                           "Total\nconsumption" = "Total",
+                           "Food\nconsumption" = "Food"),
+         categorization = ordered(categorization, levels = c("Total", "Food")))
 
 # (6) Determine colours
 custom_palette <- c("#495057", "#6c757d")
@@ -113,10 +115,12 @@ for(x in 1:6){
                fill = fill,
                group = shortname))+
     geom_bar(stat="identity") +
+    geom_hline(yintercept = 0, linewidth = 0.1) +
     geom_text(aes(label = ifelse(is.na(share), "", 
                                  paste0(fill,":\n",
                                         share))), 
-              size = 5, 
+              angle = 90,
+              size = 5 / .pt, 
               position = position_stack(vjust = 0.5, reverse = TRUE), 
               colour="white")+
     
@@ -160,12 +164,14 @@ for(x in 1:6){
       theme(axis.text.x = element_text(angle = 0,vjust =0.5, hjust=0.5),
             axis.text.y.right=element_text(color="white"),
             axis.line.y.right=element_line(color="white"),
+            axis.ticks.y.right=element_blank(),
             legend.position="none") 
     }+
     {if(sel != "Biodiversity loss \n(PDF)")  
       theme(axis.text.x = element_text(angle = 0,vjust =0.5, hjust=0.5),
             axis.text.y.right=element_text(color="#6c757d"),
             axis.line.y.right=element_line(color="#6c757d"),
+            axis.ticks.y.right=element_line(color="#6c757d"),
             legend.position="none") 
     }
 }
@@ -175,13 +181,21 @@ ggarrange(ggarrange(plotlist = plotlist,
                     nrow = 1),
           NULL,
           cat10_legend, 
-          nrow = 3, heights = c(1, 0.02, 0.1))
+          nrow = 3, heights = c(1, 0.02, 0.15))
 
-# Save
-ggsave("../build/figures/figure_footprints_pb_"%&%config$year_io%&%".pdf",
-       width = 22, height = 7)
+# Save plot
+name_fig1 <- "../build/figures/Figure1"
+ggsave(name_fig1%&%".pdf",
+       width = 180,
+       height = 80,
+       units = "mm")
 
-rm(df_1, df_2, df_3, df_plot)
+# (7b) Save source data
+write.csv(df_all, 
+          name_fig1%&%".csv",
+          row.names = FALSE)
+
+rm(df_1, df_2, df_3, df_plot, name_fig1)
 
 
 # other: for text and understanding ---------------------------------------
@@ -275,12 +289,13 @@ do.call(rbind.data.frame, df_c_i) %>%
 
 # Figure 2: Maps ----------------------------------------------------------
 
-# _ load world shape file (in line with EXIOBASE regions) -----------------
-load("./00_data/manual_input/mapdata/world_df.RData")
+# For source data: define filename
+name_fig2 <- "../build/figures/Figure2"
+file_footprints <- name_fig2%&%".csv"
 
-# _ prepare shape file: EU-------------------------------------------------
+# _ prepare shape file: EU and World --------------------------------------
 
-# Load EXIO region data
+# Load EXIO region data (needed for both EU and world maps)
 EXIO_region_df <- read.xlsx("00_data/manual_input/Bruckner2023.xlsx", 
                             sheet = "EXIOBASE_381_regions") %>% 
   mutate(iso_2_upd = ifelse(iso_2 == "GR",
@@ -292,14 +307,152 @@ EXIO_region_df <- read.xlsx("00_data/manual_input/Bruckner2023.xlsx",
                                    "USA",
                                    cntry)))
 
+# __ prepare world shape file (in line with EXIOBASE regions) -----------------
+world_id_mapping <- read.csv("00_data/manual_input/mapdata/world_id1.csv") %>%
+  select(cntry, iso2, EXIO_code)
 
-# Load EU country-level shapefile from eurostat
-years <- c(2003,2006,2010,2013,2016,2021)
-shp_eu <- get_eurostat_geospatial(resolution = 10, 
-                                  nuts_level = 0, 
-                                  year       = years[which.min(abs(years - as.numeric(config$year_io)))]) %>% 
-  dplyr::select(geo = NUTS_ID, geometry)  
+world_sf_original <- ne_countries(scale = "small", returnclass = "sf") %>%
+  filter(iso_a2 != "AQ") %>%
+  mutate(
+    # Normalize country names to match world_id1.csv
+    name_normalized = case_when(
+      name == "W. Sahara" ~ "Western Sahara",
+      name == "Falkland Is." ~ "Falkland Islands / Malvinas",
+      name == "Fr. S. Antarctic Lands" ~ "French Southern and Antarctic Lands",
+      TRUE ~ name
+    ),
+    # Fix iso codes for mapping consistency
+    iso_a2 = case_when(
+      iso_a2 == "NA" ~ "NAM",
+      iso_a2 == "-99" & name == "France" ~ "FR",
+      iso_a2 == "-99" & name == "Norway" ~ "NO",
+      iso_a2 == "-99" ~ name_long,
+      TRUE ~ iso_a2
+    )
+  ) %>%
+  # Join with EXIO regions (direct countries, then iso mapping, then name mapping)
+  left_join(EXIO_region_df[, c("iso_2", "EXIO_code")], 
+            by = c("iso_a2" = "iso_2")) %>%
+  left_join(world_id_mapping %>% select(iso2, EXIO_code), 
+            by = c("iso_a2" = "iso2"), suffix = c("", ".map1")) %>%
+  left_join(world_id_mapping %>% select(cntry, EXIO_code), 
+            by = c("name_normalized" = "cntry"), suffix = c("", ".map2")) %>%
+  mutate(id = as.character(coalesce(EXIO_code, EXIO_code.map1, EXIO_code.map2)),
+         id = ifelse(is.na(id) | id == "NA", as.character(row_number() + 1000), id)) %>%
+  select(-starts_with("EXIO_code"), -name_normalized)
 
+# Reassign Crimea to Ukraine's EXIO code
+crimea_point_world <- st_sfc(st_point(c(34, 45)), crs = st_crs(world_sf_original))
+
+ukraine_exio <- world_sf_original %>% filter(iso_a2 == "UA") %>% pull(id) %>% first()
+russia_row <- world_sf_original %>% filter(iso_a2 == "RU")
+russia_polygons <- st_cast(russia_row$geometry, "POLYGON")
+
+crimea_mask <- sapply(russia_polygons, function(x) {
+  st_intersects(x, crimea_point_world, sparse = FALSE)[1]
+})
+
+world_sf_corrected <- world_sf_original %>%
+  filter(iso_a2 != "RU") %>%
+  bind_rows(
+    russia_row %>%
+      mutate(geometry = st_combine(russia_polygons[!crimea_mask]) %>% st_cast("MULTIPOLYGON")),
+    russia_row %>%
+      mutate(geometry = russia_polygons[crimea_mask] %>% st_cast("POLYGON"),
+             id = ukraine_exio)
+  )
+
+# Dissolve borders within each EXIOBASE region
+sf_use_s2(FALSE)
+world_sf_dissolved <- world_sf_corrected %>%
+  mutate(geometry = suppressWarnings(st_buffer(geometry, dist = 0))) %>%
+  group_by(id) %>%
+  summarise(geometry = st_union(geometry), .groups = "drop") %>%
+  # Cast to MULTIPOLYGON to ensure proper structure
+  st_cast("MULTIPOLYGON")
+sf_use_s2(TRUE)
+
+# Convert to data.frame for ggplot
+world_sf_polygons <- world_sf_dissolved %>%
+  st_cast("MULTIPOLYGON") %>%
+  st_cast("POLYGON")
+
+world_df <- do.call(rbind, lapply(seq_len(nrow(world_sf_polygons)), function(i) {
+  coords <- st_coordinates(world_sf_polygons[i,])
+  if(nrow(coords) == 0) return(NULL)
+  data.frame(
+    long = coords[,1],
+    lat = coords[,2],
+    order = seq_len(nrow(coords)),
+    piece = paste(i, coords[,3], sep = "."),
+    group = paste(i, coords[,3], coords[,4], sep = "."),
+    id = world_sf_polygons$id[i],
+    stringsAsFactors = FALSE
+  )
+}))
+
+# __ prepare shape file: EU-------------------------------------------------
+
+shp_europe <- ne_countries(scale = "large", returnclass = "sf", continent = "Europe")
+shp_missing <- ne_countries(scale = "large", returnclass = "sf", 
+                            country = c("France", "Cyprus", "Turkey"))
+shp_eu_all_original <- bind_rows(shp_europe, shp_missing)
+
+# Reassign Crimea from Russia to Ukraine
+crimea_point <- st_sfc(st_point(c(34, 45)), crs = st_crs(shp_eu_all_original))
+
+russia_polygons <- shp_eu_all_original %>% 
+  filter(iso_a2 == "RU") %>% 
+  st_geometry() %>% 
+  st_cast("POLYGON")
+
+crimea_index <- sapply(russia_polygons, function(x) {
+  st_intersects(x, crimea_point, sparse = FALSE)[1]
+})
+crimea_polygon <- russia_polygons[crimea_index]
+
+new_russia <- russia_polygons[!crimea_index] %>% 
+  st_combine() %>% 
+  st_cast("MULTIPOLYGON")
+
+ukraine_polygons <- shp_eu_all_original %>% 
+  filter(iso_a2 == "UA") %>% 
+  st_geometry() %>% 
+  st_cast("POLYGON")
+
+new_ukraine <- st_union(c(ukraine_polygons, crimea_polygon)) %>%
+  st_cast("MULTIPOLYGON") %>%
+  st_make_valid()  # Clean up any invalid geometries from the union
+
+sf_use_s2(FALSE)
+shp_eu_all <- shp_eu_all_original %>%
+  mutate(geometry = suppressWarnings(st_buffer(geometry, dist = 0)),
+         geometry = case_when(
+           iso_a2 == "UA" ~ new_ukraine,
+           iso_a2 == "RU" ~ new_russia,
+           .default = geometry
+         ),
+         geo = case_when(
+           iso_a2 == "GR" ~ "EL",
+           iso_a2 == "GB" ~ "UK",
+           iso_a2_eh == "GB" ~ "UK",
+           name == "France" ~ "FR",
+           name == "Cyprus" ~ "CY",
+           name == "Turkey" ~ "TR",
+           TRUE ~ iso_a2
+         )) %>%
+  distinct(geo, .keep_all = TRUE)
+sf_use_s2(TRUE)
+
+# EU countries only (for footprint maps)
+shp_eu <- shp_eu_all %>%
+  filter(geo %in% countries) %>%
+  dplyr::select(geo, geometry)
+
+# Non-EU European countries (for background in grey)
+shp_noneu <- shp_eu_all %>%
+  filter(!geo %in% countries) %>%
+  dplyr::select(geometry)
 
 # _ create Figure 2 -------------------------------------------------------
 
@@ -330,7 +483,7 @@ legendscale <- as.data.frame(sapply(colnames(legendscale_imp),
                                     function(col) pmax(legendscale_imp[[col]], 
                                                        legendscale_fp[[col]])))
 
-# (A) EU food consumption footprints
+# (A) Plot EU food consumption footprints (saving footprint source data)
 plotlist_footprint <- lapply(selectedindicators_plot, function(ind){
   create_footprint_map(
     what                 = "footprint",
@@ -344,7 +497,8 @@ plotlist_footprint <- lapply(selectedindicators_plot, function(ind){
 }) %>%
   setNames(selectedindicators_plot)
 
-# (B) impacts from EU food consumption
+
+# (B) impacts from EU food consumption (saving impacts source data)
 plotlist_impact <- lapply(selectedindicators_plot, function(ind){
   create_footprint_map(
     what                 = "importedfrom",
@@ -378,6 +532,7 @@ plotlist_legend <- lapply(selectedindicators_plot, function(ind){
 plotlist_footprint_label <- lapply(selectedindicators_plot, function(ind){
   # create "first column" (impact name + footprint plot)
   ggarrange(
+    
     # add padding around label
     ggarrange(
       NULL,
@@ -388,7 +543,8 @@ plotlist_footprint_label <- lapply(selectedindicators_plot, function(ind){
                  x        = 0,
                  y        = 0,
                  angle    = 90,
-                 size     = 8,
+                 size     = 7/.pt,
+                 family   = "Helvetica",
                  fontface = "bold") +
         theme_void() +
         ggtitle(""),
@@ -416,19 +572,22 @@ plotlist_impact_bar <- lapply(selectedindicators_plot, function(ind){
 # combine column titles ("Footprints" and "Impacts) with respective figure
 # columns ((A)+label, (B)+(C)) and legend (D)
 ggarrange(
+  NULL,
   # add column title to footprint maps
   ggarrange(ggplot() +
               annotate(label    = "Footprints",
                        geom     = "text",
                        x        = 0,
                        y        = 0,
-                       size     = 8,
+                       size     = 7/.pt,
+                       family   = "Helvetica",
                        fontface = "bold") +
               theme_void() +
               ggtitle(""),
-            plotlist = align_plots(plotlist = plotlist_footprint_label,
-                                   axis     = "l"),
-            ncol = 1, heights = c(0.15, rep(1, 6))),
+            plotlist = align_plots(plotlist = unlist(lapply(plotlist_footprint_label, function(x) list(x, NULL)), recursive = FALSE),
+                                   axis = "l"),
+            ncol = 1, heights = c(0.15, rep(c(0.5, 0.001), length(plotlist_footprint_label)))),
+  
   NULL,
   # add column title to impact maps
   ggarrange(ggplot() +
@@ -436,13 +595,15 @@ ggarrange(
                        geom     = "text",
                        x        = 0,
                        y        = 0,
-                       size     = 8,
+                       size     = 7/.pt,
+                       family   = "Helvetica",
                        fontface = "bold") +
               theme_void() +
               ggtitle(""),
-            plotlist = align_plots(plotlist = plotlist_impact_bar,
+            plotlist = align_plots(plotlist = unlist(lapply(plotlist_impact_bar, function(x) list(x, NULL)), recursive = FALSE),
                                    axis     = "l"),
-            ncol = 1, heights = c(0.15, rep(1, 6))),
+            ncol = 1, heights = c(0.15, rep(c(0.5, 0.001), length(plotlist_impact_bar)))),
+  
   NULL,
   # add legends
   ggarrange(ggplot() +
@@ -450,20 +611,31 @@ ggarrange(
                        geom     = "text",
                        x        = 0,
                        y        = 0,
-                       size     = 8,
+                       size     = 5/.pt,
                        fontface = "bold") +
               theme_void() +
               ggtitle(""),
             plotlist = lapply(plotlist_legend, function(x){
               ggdraw(x)
             }),
-            ncol = 1, heights = c(0.15, rep(1, 6))),
-  ncol = 5, widths = c(0.7, 0.02, 1, 0.02, 0.2))
+            ncol = 1, heights = c(0.15, rep(0.5, 6))),
+  NULL,
+  
+  ncol = 7, widths = c(0.5, # NULL
+                       0.5, # Footprints (incl indicator name)
+                       0.02, # NULL
+                       0.8, # Impacts (incl bar)
+                       0.1, # NULL
+                       0.1, # Legend
+                       0.5 # NULL
+  ))
 
 
 # save output
-ggsave("../build/figures/figure_footprint_maps_"%&%config$year_io%&%".pdf",
-       width = 15, height = 28)
+ggsave(name_fig2%&%".pdf",
+       width = 180,
+       height = 210,
+       units = "mm")
 
 # _____________________________________------------------------------------
 # END OF FILE -------------------------------------------------------------

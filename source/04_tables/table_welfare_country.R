@@ -134,7 +134,6 @@ write(Table_welfare %>%
               escape     = TRUE,
               booktabs   = TRUE,
               linesep    = "",
-              caption    = "Mean per household welfare impacts of policies in EUR",
               label      = "net_welfare",
               row.names  = FALSE,
               col.names  = c("", "Change in COL","Change in T", "Net cost",
@@ -147,17 +146,10 @@ write(Table_welfare %>%
         row_spec(0, bold = TRUE) %>%
         row_spec(28, bold = TRUE) %>%
         column_spec(2:7, width = "6em") %>%
-        footnote(general = c("The table presents welfare effects resulting from the removal of value-added tax reductions for meat products",
-                             "(VAT reform) and the implementation of a GHG emission price of "%&%price%&%" EUR/"%&%unit%&%" on all food products. It",
-                             "compares the mean change in the absolute cost-of-living (Change in cost) with the mean change in tax income" ,
-                             "(Change in tax revenue, comprising the change in VAT income and the additional income from GHG emission",
-                             "pricing) by country. Net cost represents the difference between mean change in the absolute cost-of-living and",
-                             "the mean additional tax income. All values are rounded annual means per household in EUR, weighted using",
-                             "sampling weights to ensure representativeness.")) %>%
         kable_paper(),
       file = "../build/tables/"%&%
         substring(configpath, 1, nchar(configpath)-5)%&%
-        "/net_welfare_country.tex") 
+        "/ED_Table2.tex") 
 
 
 # _ text ------------------------------------------------------------------

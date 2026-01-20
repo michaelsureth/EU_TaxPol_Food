@@ -112,6 +112,7 @@ EU_footprint_food <-
 # add jitter for VAT price change (otherwise points overlap perfectly)
 jitterjoin <- data.frame(category = seq(1,10,1),
                          jitter   = seq(-0.95,0, length.out = 10))
+
 # prepare dataframe to plot
 df_plot_pq <- pol_all %>%
   dplyr::select(category, cat_no, price_increase_rel, demand_reduction_rel, fill,
@@ -127,22 +128,33 @@ df_plot_pq <- pol_all %>%
                         0.23,      # change this to change second row upper limit
                         0.1))      # change this to change first row upper limit
 
+# save source data
+name_fig3 <- "../build/figures/"%&%configpath%&%"_"%&%config$year_io%&%"/Figure3"
+write.csv(df_plot_pq %>%
+            dplyr::select(category, policy, countryname, variable, relative_change) %>%
+            arrange(policy, countryname, variable),
+          name_fig3%&%".csv",
+          row.names = FALSE)
+
+# create subplots
 for(pol in c("VAT_increase", policy)){
   assign("plot_p_"%&%pol,
          df_plot_pq %>%
            filter(policy == pol & variable == "price_increase_rel") %>%
            ggplot() +
-           geom_hline(yintercept = 0) +
+           geom_hline(yintercept = 0, linewidth = 0.3) +
            {if(pol == "VAT_increase")
              geom_point(aes(y     = relative_change,
                             x     = as.numeric(factor(countryname)) + jitter,
                             color = fill),
+                        size=0.3,
                         show.legend = FALSE)
            } +
            {if(pol == "tax_GHG emissions")  
              geom_point(aes(y     = relative_change,
                             x     = countryname,
                             color = fill),
+                        size=0.3,
                         show.legend = FALSE)
            } +
            scale_colour_manual(values = rev(food_colours_10)) +
@@ -152,7 +164,7 @@ for(pol in c("VAT_increase", policy)){
            scale_x_discrete(labels = NULL) +
            {if(pol == "VAT_increase")
              labs(x     = NULL,
-                  y     = "policy-induced \n price change (in %)",
+                  y     = "Policy-induced \n price change (in %)",
                   title = "VAT reform")} +
            {if(pol == "tax_GHG emissions")
              labs(x     = NULL,
@@ -160,11 +172,11 @@ for(pol in c("VAT_increase", policy)){
                   title = "GHG emission price ("%&%price%&%
                     " EUR/"%&%unit_tax%&%")")} +
            theme_c1m3() +
-           theme(axis.title.y = element_text(size   = 18,
+           theme(axis.title.y = element_text(size   = 7,
                                              face   = "bold",
                                              margin = margin(t = 0, r = 20,
                                                              b = 0, l = 0)),
-                 plot.title   = element_text(size   = 20,
+                 plot.title   = element_text(size   = 7,
                                              hjust  = 0.5,
                                              margin = margin(t = 0,  r = 0,
                                                              b = 20, l = 0)),
@@ -175,10 +187,11 @@ for(pol in c("VAT_increase", policy)){
          df_plot_pq %>%
            filter(policy == pol & variable == "demand_reduction_rel") %>%
            ggplot() +
-           geom_hline(yintercept = 0) +
+           geom_hline(yintercept = 0, linewidth = 0.3) +
            geom_point(aes(y     = relative_change,
                           x     = countryname,
                           color = fill),
+                      size=0.3,
                       show.legend = FALSE) +
            scale_colour_manual(values = rev(food_colours_10)) +
            geom_blank(aes(y = ymin)) +
@@ -186,18 +199,18 @@ for(pol in c("VAT_increase", policy)){
            scale_y_continuous(labels = scales::percent) +
            {if(pol == "VAT_increase")
              labs(x     = NULL,
-                  y     = "change in demanded \n quantity (in %)",
+                  y     = "Change in demanded \n quantity (in %)",
                   title = "")} +
            {if(pol == "tax_GHG emissions")
              labs(x     = NULL,
                   y     = "",
                   title = "")} +
            theme_c1m3() +
-           theme(axis.title.y = element_text(size   = 18,
+           theme(axis.title.y = element_text(size   = 7,
                                              face   = "bold",
                                              margin = margin(t = 0, r = 20,
                                                              b = 0, l = 0)),
-                 plot.title   = element_text(size   = 20,
+                 plot.title   = element_text(size   = 7,
                                              hjust  = 0.5,
                                              margin = margin(t = 0,  r = 0,
                                                              b = 20, l = 0)),
@@ -206,12 +219,16 @@ for(pol in c("VAT_increase", policy)){
 }
 
 # Arrange plot and prepared legend (in plot_functions.R)
-ggarrange(ggarrange(plot_p_VAT_increase, `plot_p_tax_GHG emissions`,
-                    NULL, NULL,
-                    plot_q_VAT_increase, `plot_q_tax_GHG emissions`,
-                    align = "hv", nrow = 3, ncol = 2, heights = c(1, -0.2, 1)),
+ggarrange(ggarrange(plot_p_VAT_increase, `plot_p_tax_GHG emissions`, NULL, 
+                    NULL, NULL, NULL, 
+                    plot_q_VAT_increase, `plot_q_tax_GHG emissions`, NULL, 
+                    align = "hv", 
+                    nrow = 3, ncol = 3, 
+                    heights = c(1, -0.2, 1),
+                    widths = c(1,1,0.1)),
           cat10_legend, 
-          nrow = 2, heights = c(1, 0.1)
+          nrow = 2, 
+          heights = c(1, 0.1)
 )
 
 # Save plot
@@ -221,8 +238,10 @@ if(!dir.exists("../build/figures/"%&%configpath%&%"_"%&%config$year_io)){
              recursive = TRUE)
 }
 
-ggsave("../build/figures/"%&%configpath%&%"_"%&%config$year_io%&%"/figure_pq.pdf",
-       width = 16, height = 8)
+ggsave(name_fig3%&%".pdf",
+       width = 180,
+       height = 100,
+       units = "mm")
 
 
 # __ text: pq changes -----------------------------------------------------
@@ -272,7 +291,7 @@ df_plot_pq %>%
 df_plot_pq %>%
   filter(variable == "price_increase_rel" & grepl("GHG", policy)) %>% 
   dplyr::select(category, country, relative_change) %>%
-  distinct()
+  distinct() %>% View()
 
 # GHG emissions: price change for beef (average) 
 df_plot_pq %>%
@@ -342,7 +361,9 @@ df_plot_fp <- pol_all %>%
                    impact_name, unit) %>%
   # correct order
   left_join(selectedindicators_df, by = c("impact_name" = "shortname")) %>% 
-  mutate(header = paste0(impact_name, "\n(", unit, ")")) %>%
+  mutate(header = ifelse(impact_name == "Biodiversity loss", 
+                         paste0("Biodiversity \n loss (", unit, ")"), 
+                         paste0(impact_name, "\n(", unit, ")"))) %>%
   mutate(header = reorder(header, n,  decreasing = F)) %>% 
   group_by(policy, fill, impact_name, header, cat_no) %>%
   dplyr::summarise(footprint_reduction_abs = sum(footprint_reduction_abs)) %>%
@@ -362,6 +383,15 @@ df_plot_fp <- pol_all %>%
                          ifelse(policy == "VAT_increase",
                                 "VAT reform", 
                                 NA)))
+
+# save source data
+name_fig4 <- "../build/figures/"%&%configpath%&%"_"%&%config$year_io%&%"/Figure4"
+write.csv(df_plot_fp %>%
+            dplyr::select(policy, category = fill, indicator = header, 
+                          footprint_reduction_abs, footprint_reduction_abs_total, 
+                          lowerbound, upperbound = higherbound),
+          name_fig4%&%".csv",
+          row.names = FALSE)
 
 
 # plot reductions for each indicator
@@ -397,11 +427,13 @@ for(x in 1:length(selectedindicators_plot)){
     geom_bar(stat     = "identity",
              position = "stack",
              width    = 0.8) +
+    geom_hline(yintercept = 0, linewidth = 0.1) +
     
     {if(boot_exist == "boot_yes")
       geom_errorbar(aes(ymin = lowerbound,
                         ymax = higherbound),
-                    width = 0.2)
+                    width = 0.1,
+                    linewidth = 0.2)
     } +
     
     {if(sel == "Biodiversity loss")
@@ -434,9 +466,10 @@ for(x in 1:length(selectedindicators_plot)){
     xlab("") + ylab("") +
     scale_fill_manual(values = rev(food_colours_10)) +
     theme(axis.text.x = element_text(angle = 90, vjust = 1, hjust = 1),
-          panel.grid.minor.y = element_line(linewidth = .1, color = "black"),
+          panel.grid.minor.y = element_blank(),
           axis.text.y.right  = element_text(color="#6c757d"),
           axis.line.y.right  = element_line(color="#6c757d"),
+          axis.ticks.y.right = element_line(color="#6c757d"),
           legend.position    = "none"
     )
 }
@@ -446,11 +479,13 @@ ggarrange(ggarrange(plotlist = plotlist,
                     nrow = 1),
           NULL,
           cat10_legend, 
-          nrow = 3, heights = c(1, 0.02, 0.1))
+          nrow = 3, heights = c(1, 0.02, 0.2)) 
 
 # Save plot
-ggsave("../build/figures/"%&%configpath%&%"_"%&%config$year_io%&%"/figure_fp_changes.pdf",
-       width = 18, height = 7)
+ggsave(name_fig4%&%".pdf",
+       width = 180,
+       height = 90,
+       units = "mm")
 
 
 # __ text: footprint reductions -------------------------------------------
@@ -512,7 +547,7 @@ deltaabsfootprints %>%
               names_from = policy,
               values_from = footprint_reduction_abs) %>% 
   setNames(c("header", "GHG_emission_price", "VAT_reform")) %>%
-  mutate(diff = VAT_reform-GHG_emission_price)
+  mutate(diff = VAT_reform-GHG_emission_price) %>% View()
 
 # relative difference between policies
 deltaabsfootprints %>%

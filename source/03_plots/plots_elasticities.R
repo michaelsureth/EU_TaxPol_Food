@@ -138,14 +138,20 @@ type <- "uncomp"
 dir  <- "from"
 av   <- "mean"
 
+# Save source data and plot
+name_figE1 <- "../build/figures/"%&%configpath%&%"_"%&%config$year_io%&%
+  "/ED_Figure1"
+
 plot_CPEs(type      = type, 
           direction = dir,
           lims      = c(-2, 1),
           averaging = av)
 
-ggsave("../build/figures/"%&%configpath%&%"_"%&%config$year_io %&%
-         "/figure_CPEs_"%&%type%&%"_"%&%dir%&%"_"%&%av%&%".pdf",
-       width = 20, height = 6)
+ggsave(name_figE1%&%".pdf",
+       width = 180,
+       height = 54,
+       units = "mm")
+       
 
 # _ Generate info for text ------------------------------------------------
 

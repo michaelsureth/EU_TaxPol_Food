@@ -347,7 +347,7 @@ globalemissionreductions_bycountry <- delta_footprints_imp_bycountry %>%
   
   
   # Add social cost estimates to reductions 
-  left_join(  sc_ghg[sc_ghg$discount_rate==2,], 
+  left_join(  sc_ghg_epa[sc_ghg_epa$discount_rate==2,], 
               by = c("s_group" = "GHG"))  %>%
   
   # SF6 is given in kg SF6 but needs to be valued at SC-CO2
@@ -371,7 +371,7 @@ globalemissionreductions_bycountry <- delta_footprints_imp_bycountry %>%
 # CO2, CH4 and N2O are valued at their respective SC
 # HFC, PFC, SF6 are now given in CO2eq and will be valued at SC-CO2
 globalemissionreductions_bycountry[globalemissionreductions_bycountry$Unit == "tCO2eq",]$value_euro_2019 <- 
-  sc_ghg[sc_ghg$GHG == "CO2" & sc_ghg$discount_rate==2,]$value_euro_2019
+  sc_ghg_epa[sc_ghg_epa$GHG == "CO2" & sc_ghg_epa$discount_rate==2,]$value_euro_2019
 
 # Compute total reduction benefits in MEUR and generate output table
 GHG_final_bycountry <- globalemissionreductions_bycountry %>%
@@ -603,7 +603,7 @@ P_final_bycountry <- fp_scp %>%
 # Table of social cost assumptions
 table_social_cost <- 
   # Social cost of GHGs
-  sc_ghg[sc_ghg$discount_rate==2, 
+  sc_ghg_epa[sc_ghg_epa$discount_rate==2, 
          c("GHG", "value_euro_2019")] %>%
   dplyr::transmute(Unit = "Global", 
                    Stressor = GHG, 

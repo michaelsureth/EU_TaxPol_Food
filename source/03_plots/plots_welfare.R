@@ -106,6 +106,15 @@ mean_col <- lapply(c("VAT_increase", policy), function(pol){
 }
 ) %>% bind_rows()
 
+# save source data
+name_fig5 <- "../build/figures/"%&%configpath%&%"/Figure5"
+write.csv(rbind(data.frame(country = "mean", mean_tax_inc, mean_col=NA, lcol_abs=NA),
+                data.frame(country = "mean", mean_col, mean_tax_inc=NA, lcol_abs=NA),
+                df %>% bind_rows() %>% dplyr::transmute(country, policy, lcol_abs,
+                mean_tax_inc = NA, mean_col = NA)),
+          name_fig5%&%".csv",
+          row.names = FALSE)
+
 # Plot densities for both policies
 EU_plots <- lapply(c("VAT_increase", policy), function(pol){
   
@@ -128,8 +137,8 @@ EU_plots <- lapply(c("VAT_increase", policy), function(pol){
                     ) +
     xlab("Cost-of-living (EUR)")+ylab("")+
     theme(legend.position = "none",
-          axis.text = element_text(size = 11),
-          axis.title = element_text(size = 12)) +
+          axis.text = element_text(size = 5),
+          axis.title = element_text(size = 6)) +
     {if(pol == "VAT_increase")
       theme(axis.text.x = element_blank(),
             axis.title.x = element_blank())
@@ -150,7 +159,7 @@ legend_dens <- lapply(c("VAT_increase", policy), function(pol){
     
     # retrieve legend from plot
     return(
-      get_plot_component(plot_welfare_dens(df = df %>%
+      get_legend(plot_welfare_dens(df = df %>%
                                              bind_rows(),
                                            pol, 
                                            x_lim = 500,
@@ -167,10 +176,8 @@ legend_dens <- lapply(c("VAT_increase", policy), function(pol){
                                scale_color_manual(name = "Legend",
                                                   values = c("GHG emission price" = line_color))
                            } +
-                           theme(legend.text = element_text(size = 11))
-                         ,
-                         'guide-box',
-                         return_all = TRUE)[[3]]
+                           theme(legend.text = element_text(size = 5),
+                                 legend.key.width = unit(0.5, "cm")))
     )
   })
 
@@ -178,7 +185,7 @@ legend_dens <- lapply(c("VAT_increase", policy), function(pol){
 # Generate legend for vertical lines indicating means
 legend_lines <- lapply(c("mean costs", "mean additional tax revenue"),
                     function(lab){
-                      get_plot_component(plot_welfare_dens(df = df%>%
+                      get_legend(plot_welfare_dens(df = df%>%
                                                              bind_rows(),
                                                            pol = "VAT_increase",
                                                            x_lim = 500,
@@ -189,29 +196,31 @@ legend_lines <- lapply(c("mean costs", "mean additional tax revenue"),
                                                            fill_color = policy_colours[[1]]%&%"30") +
                                            scale_color_manual(name = "Legend",
                                                               values = c("black") |> `names<-`(c(lab))) +
-                                           theme(legend.text = element_text(size = 11)),
-                                         'guide-box',
-                                         return_all = TRUE)[[3]]
+                                           theme(legend.text = element_text(size = 5),
+                                                 legend.key.width = unit(0.001, "cm")))
                     })
 
 
 
 # Combine density plots with legends
 ggarrange(
-  ggarrange(plotlist = EU_plots,
+  NULL,
+  ggarrange(plotlist = list(EU_plots[[1]], NULL, EU_plots[[2]]),
             ncol = 1,
-            heights = c(1, 1.1)),
+            heights = c(1, 0.1, 1.2)),
   NULL,
   ggarrange(legend_dens[[1]],
-            legend_dens[[2]],
+            legend_dens[[2]], NULL,
             legend_lines[[2]],
-            legend_lines[[1]], nrow = 1),
-  ncol = 1, heights = c(1.5, 0.05, 0.2)
+            legend_lines[[1]], nrow = 1, widths = c(1,1,0.3,1,1)),
+  ncol = 1, heights = c(0.05, 1.5, 0.05, 0.2)
 )
 
 # _ Save figure -----------------------------------------------------------
-ggsave("../build/figures/"%&%configpath%&%"/figure_lcol_EU.pdf",
-       width = 8, height = 5)
+ggsave(name_fig5%&%".pdf",
+       width = 88,
+       height = 80,
+       units = "mm")
 
 
 # _ text ------------------------------------------------------------------

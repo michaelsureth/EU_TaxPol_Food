@@ -116,16 +116,13 @@ write(Table_fp %>%
               escape     = TRUE,
               booktabs   = TRUE,
               linesep    = "",
-              caption    = "Environmental footprints of households’ food consumption per capita",
               label      = "si_fppc",
               row.names  = FALSE,
               align      = "c") %>%
         kable_styling(font_size = 8) %>%
         column_spec(2:7, width = "5em") %>%
-        footnote(general = c("The table presents environmental footprints associated with households' food consumption per capita",
-                             "and year by EU27 country. Computations are based on EXIOBASE v.3.8.2 (year 2019).")) %>%
         kable_paper(),
-      file = "../build/tables/footprints_pc.tex") 
+      file = "../build/tables/ED_Table1.tex") 
 
 # _____________________________________------------------------------------
 # END OF FILE -------------------------------------------------------------
